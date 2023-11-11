@@ -74,7 +74,7 @@ public class ModifierSettingsScreen extends Screen {
     //Set colors using GL11, use the fontObj field to display text
     //Use drawTexturedModalRect() to transfers areas of a texture resource to the screen
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
 
         scrollPane.render(guiGraphics, mouseX, mouseY, partialTicks);
 

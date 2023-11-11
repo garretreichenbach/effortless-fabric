@@ -69,7 +69,7 @@ public class PlayerSettingsScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
 
         int yy = top;
         guiGraphics.drawString(font, "Shader type", left, yy + 5, 0xFFFFFF);
@@ -172,9 +172,9 @@ public class PlayerSettingsScreen extends Screen {
         }
 
         @Override
-        public boolean mouseScrolled(double mouseX, double mouseY, double scrolled) {
+        public boolean mouseScrolled(double mouseX, double mouseY, double scrolledX, double scrolledY) {
             if (!showShaderList) return false;
-            return super.mouseScrolled(mouseX, mouseY, scrolled);
+            return super.mouseScrolled(mouseX, mouseY, scrolledX, scrolledY);
         }
 
         @Override
@@ -195,7 +195,7 @@ public class PlayerSettingsScreen extends Screen {
         //From AbstractList, disabled parts
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-            this.renderBackground(guiGraphics);
+            //this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
             int scrollbarPosition = this.getScrollbarPosition();
             int scrollbarPositionWithOffset = scrollbarPosition + 6;
             Tesselator tesselator = Tesselator.getInstance();
@@ -220,23 +220,9 @@ public class PlayerSettingsScreen extends Screen {
 
             this.renderList(guiGraphics, mouseX, mouseY, partialTicks);
             RenderSystem.disableDepthTest();
-//            this.renderHoleBackground(0, this.y0, 255, 255);
-//            this.renderHoleBackground(this.y1, this.height, 255, 255);
+
             RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ZERO, GlStateManager.DestFactor.ONE);
-//            int i1 = 4;
-//            bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX_COLOR);
-//            bufferbuilder.pos((double)this.x0, (double)(this.y0 + 4), 0.0D).tex(0.0F, 1.0F).color(0, 0, 0, 0).endVertex();
-//            bufferbuilder.pos((double)this.x1, (double)(this.y0 + 4), 0.0D).tex(1.0F, 1.0F).color(0, 0, 0, 0).endVertex();
-//            bufferbuilder.pos((double)this.x1, (double)this.y0, 0.0D).tex(1.0F, 0.0F).color(0, 0, 0, 255).endVertex();
-//            bufferbuilder.pos((double)this.x0, (double)this.y0, 0.0D).tex(0.0F, 0.0F).color(0, 0, 0, 255).endVertex();
-//            tesselator.draw();
-//            bufferbuilder.begin(7, DefaultVertexFormats.POSITION_TEX_COLOR);
-//            bufferbuilder.pos((double)this.x0, (double)this.y1, 0.0D).tex(0.0F, 1.0F).color(0, 0, 0, 255).endVertex();
-//            bufferbuilder.pos((double)this.x1, (double)this.y1, 0.0D).tex(1.0F, 1.0F).color(0, 0, 0, 255).endVertex();
-//            bufferbuilder.pos((double)this.x1, (double)(this.y1 - 4), 0.0D).tex(1.0F, 0.0F).color(0, 0, 0, 0).endVertex();
-//            bufferbuilder.pos((double)this.x0, (double)(this.y1 - 4), 0.0D).tex(0.0F, 0.0F).color(0, 0, 0, 0).endVertex();
-//            tesselator.draw();
 
             //SCROLLBAR
             int j1 = this.getMaxScroll();

@@ -167,11 +167,6 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
         setCollapsed(!buttonRadialMirrorEnabled.isChecked());
     }
 
-    public void updateScreen() {
-        radialMirrorNumberFieldList.forEach(NumberField::update);
-    }
-
-
     @Override
     public void drawEntry(GuiGraphics guiGraphics, int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY,
                           boolean isSelected, float partialTicks) {

@@ -84,9 +84,6 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
         setCollapsed(!buttonArrayEnabled.isChecked());
     }
 
-    public void updateScreen() {
-        arrayNumberFieldList.forEach(NumberField::update);
-    }
 
     @Override
     public void drawEntry(GuiGraphics guiGraphics, int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY,

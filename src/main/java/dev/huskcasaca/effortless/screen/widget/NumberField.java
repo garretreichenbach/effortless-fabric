@@ -141,10 +141,6 @@ public class NumberField implements Renderable {
 
     }
 
-    public void update() {
-        textField.tick();
-    }
-
     public boolean charTyped(char typedChar, int keyCode) {
         if (!textField.isFocused()) return false;
 //        if (Character.isDigit(typedChar) || typedChar == '.' || typedChar == '-' || keyCode == Keyboard.KEY_BACK

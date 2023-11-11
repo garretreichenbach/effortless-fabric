@@ -170,12 +170,6 @@ public class MirrorSettingsPane extends ExpandableScrollEntry {
     }
 
     @Override
-    public void updateScreen() {
-        super.updateScreen();
-        mirrorNumberFieldList.forEach(NumberField::update);
-    }
-
-    @Override
     public void drawEntry(GuiGraphics guiGraphics, int slotIndex, int x, int y, int listWidth, int slotHeight, int mouseX, int mouseY,
                           boolean isSelected, float partialTicks) {
 

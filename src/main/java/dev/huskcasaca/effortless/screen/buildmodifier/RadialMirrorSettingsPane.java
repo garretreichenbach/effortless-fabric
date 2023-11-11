@@ -10,7 +10,9 @@ import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -29,7 +31,7 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
 
     protected static final ResourceLocation BUILDING_ICONS = new ResourceLocation(Effortless.MOD_ID, "textures/gui/building_icons.png");
 
-    protected List<Button> radialMirrorButtonList = new ArrayList<>();
+    protected List<AbstractButton> radialMirrorButtonList = new ArrayList<>();
     protected List<IconButton> radialMirrorIconButtonList = new ArrayList<>();
     protected List<NumberField> radialMirrorNumberFieldList = new ArrayList<>();
 
@@ -45,18 +47,22 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
     @Override
     public void init(List<Renderable> renderables) {
         super.init(renderables);
+        var modifierSettings = BuildModifierHelper.getModifierSettings(mc.player);
+        var radialMirrorSettings = (modifierSettings != null) ? modifierSettings.radialMirrorSettings(): new RadialMirror.RadialMirrorSettings();
 
         int y = top - 2;
-        buttonRadialMirrorEnabled = new Checkbox(left - 15 + 8, y, "", false) {
+        buttonRadialMirrorEnabled = new Checkbox(
+                left - 25 + 8, y, 20, 20,
+                Component.literal(""), radialMirrorSettings.enabled(), false) {
             @Override
-            public void onClick(double mouseX, double mouseY) {
-                super.onClick(mouseX, mouseY);
-                setCollapsed(!buttonRadialMirrorEnabled.isChecked());
+            public void onPress() {
+                super.onPress();
+                setCollapsed(!buttonRadialMirrorEnabled.selected());
             }
         };
         renderables.add(buttonRadialMirrorEnabled);
 
-        y = top + 18;
+        y = top + 28;
         textRadialMirrorPosX = new NumberField(font, renderables, left + Dimen.BUTTON_OFFSET_X0, y, 90, 18);
         textRadialMirrorPosX.setNumber(0);
         textRadialMirrorPosX.setTooltip(
@@ -73,7 +79,7 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
         textRadialMirrorPosZ.setTooltip(Arrays.asList(Component.literal("The position of the radial mirror."), Component.literal("For odd numbered builds add 0.5.").withStyle(ChatFormatting.GRAY)));
         radialMirrorNumberFieldList.add(textRadialMirrorPosZ);
 
-        y = top + 47;
+        y = top + 57;
         textRadialMirrorSlices = new NumberField(font, renderables, left + Dimen.BUTTON_OFFSET_X1, y + Dimen.BUTTON_VERTICAL_OFFSET * 1, 80, 18);
         textRadialMirrorSlices.setNumber(4);
         textRadialMirrorSlices.setTooltip(Arrays.asList(Component.literal("The number of repeating slices."), Component.literal("Minimally 2.").withStyle(ChatFormatting.GRAY)));
@@ -87,7 +93,7 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
                 Component.literal("Upgradeable in survival with reach upgrades.").withStyle(ChatFormatting.GRAY)));
         radialMirrorNumberFieldList.add(textRadialMirrorRadius);
 
-        y = top + 72;
+        y = top + 82;
         buttonCurrentPosition = new IconButton(left + Dimen.SECTION_OFFSET_X1, y, 0, 0, BUILDING_ICONS, button -> {
             var pos = new Vec3(Math.floor(mc.player.getX()) + 0.5, Math.floor(mc.player.getY()) + 0.5, Math.floor(mc.player.getZ()) + 0.5);
             textRadialMirrorPosX.setNumber(pos.x);
@@ -131,40 +137,37 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
         buttonDrawPlanes.setTooltip(Component.literal("Show area"));
         radialMirrorIconButtonList.add(buttonDrawPlanes);
 
-        y = top + 76;
-        buttonRadialMirrorAlternate = new Checkbox(left + Dimen.SECTION_OFFSET_X0, y, " Alternate", false);
+        y = top + 86;
+        buttonRadialMirrorAlternate = new Checkbox(
+                left + Dimen.SECTION_OFFSET_X0, y, 20, 20,
+                Component.literal(" Alternate"), radialMirrorSettings.alternate()
+        );
         radialMirrorButtonList.add(buttonRadialMirrorAlternate);
 
-        var modifierSettings = BuildModifierHelper.getModifierSettings(mc.player);
-        if (modifierSettings != null) {
-            var radialMirrorSettings = modifierSettings.radialMirrorSettings();
-            buttonRadialMirrorEnabled.setIsChecked(radialMirrorSettings.enabled());
-            textRadialMirrorPosX.setNumber(radialMirrorSettings.position().x);
-            textRadialMirrorPosY.setNumber(radialMirrorSettings.position().y);
-            textRadialMirrorPosZ.setNumber(radialMirrorSettings.position().z);
-            textRadialMirrorSlices.setNumber(radialMirrorSettings.slices());
-            buttonRadialMirrorAlternate.setIsChecked(radialMirrorSettings.alternate());
-            textRadialMirrorRadius.setNumber(radialMirrorSettings.radius());
-            drawLines = radialMirrorSettings.drawLines();
-            drawPlanes = radialMirrorSettings.drawPlanes();
-            buttonDrawLines.setUseAlternateIcon(drawLines);
-            buttonDrawPlanes.setUseAlternateIcon(drawPlanes);
-            buttonDrawLines.setTooltip(Component.literal(drawLines ? "Hide lines" : "Show lines"));
-            buttonDrawPlanes.setTooltip(Component.literal(drawPlanes ? "Hide area" : "Show area"));
-            if (textRadialMirrorPosX.getNumber() == Math.floor(textRadialMirrorPosX.getNumber())) {
-                toggleOdd = false;
-                buttonToggleOdd.setTooltip(Arrays.asList(Component.literal("Set radial mirror position to middle of block"), Component.literal("for odd numbered builds")));
-            } else {
-                toggleOdd = true;
-                buttonToggleOdd.setTooltip(Arrays.asList(Component.literal("Set radial mirror position to corner of block"), Component.literal("for even numbered builds")));
-            }
-            buttonToggleOdd.setUseAlternateIcon(toggleOdd);
+        textRadialMirrorPosX.setNumber(radialMirrorSettings.position().x);
+        textRadialMirrorPosY.setNumber(radialMirrorSettings.position().y);
+        textRadialMirrorPosZ.setNumber(radialMirrorSettings.position().z);
+        textRadialMirrorSlices.setNumber(radialMirrorSettings.slices());
+        textRadialMirrorRadius.setNumber(radialMirrorSettings.radius());
+        drawLines = radialMirrorSettings.drawLines();
+        drawPlanes = radialMirrorSettings.drawPlanes();
+        buttonDrawLines.setUseAlternateIcon(drawLines);
+        buttonDrawPlanes.setUseAlternateIcon(drawPlanes);
+        buttonDrawLines.setTooltip(Component.literal(drawLines ? "Hide lines" : "Show lines"));
+        buttonDrawPlanes.setTooltip(Component.literal(drawPlanes ? "Hide area" : "Show area"));
+        if (textRadialMirrorPosX.getNumber() == Math.floor(textRadialMirrorPosX.getNumber())) {
+            toggleOdd = false;
+            buttonToggleOdd.setTooltip(Arrays.asList(Component.literal("Set radial mirror position to middle of block"), Component.literal("for odd numbered builds")));
+        } else {
+            toggleOdd = true;
+            buttonToggleOdd.setTooltip(Arrays.asList(Component.literal("Set radial mirror position to corner of block"), Component.literal("for even numbered builds")));
         }
+        buttonToggleOdd.setUseAlternateIcon(toggleOdd);
 
         renderables.addAll(radialMirrorButtonList);
         renderables.addAll(radialMirrorIconButtonList);
 
-        setCollapsed(!buttonRadialMirrorEnabled.isChecked());
+        setCollapsed(!buttonRadialMirrorEnabled.selected());
     }
 
     @Override
@@ -174,16 +177,16 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
         int offset = 8;
 
         buttonRadialMirrorEnabled.render(guiGraphics, mouseX, mouseY, partialTicks);
-        if (buttonRadialMirrorEnabled.isChecked()) {
+        if (buttonRadialMirrorEnabled.selected()) {
             buttonRadialMirrorEnabled.setY(y);
-            guiGraphics.drawString(font, "Radial mirror enabled", left + offset, y + 2, 0xFFFFFF);
+            guiGraphics.drawString(font, "Radial mirror enabled", left + offset, y + 8, 0xFFFFFF);
 
             var positionOffsetX0 = left + Dimen.SECTION_OFFSET_X0;
             var positionOffsetX1 = left + Dimen.SECTION_OFFSET_X1;
-            var positionOffsetY0 = y + 24;
-            var positionOffsetY1 = y + 24 * 2;
-            var positionOffsetY2 = y + 24 * 3;
-            var positionOffsetY3 = y + 24 * 4;
+            var positionOffsetY0 = y + 10 + 24;
+            var positionOffsetY1 = y + 10 + 24 * 2;
+            var positionOffsetY2 = y + 10 + 24 * 3;
+            var positionOffsetY3 = y + 10 + 24 * 4;
 
             var textOffsetX = 40;
             var componentOffsetY = -5;
@@ -215,14 +218,14 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
                     .forEach(numberField -> numberField.render(guiGraphics, mouseX, mouseY, partialTicks));
         } else {
             buttonRadialMirrorEnabled.setY(y);
-            guiGraphics.drawString(font, "Radial mirror disabled", left + offset, y + 2, 0x999999);
+            guiGraphics.drawString(font, "Radial mirror disabled", left + offset, y + 8, 0x999999);
         }
 
     }
 
     public void drawTooltip(GuiGraphics guiGraphics, Screen guiScreen, int mouseX, int mouseY) {
         //Draw tooltips last
-        if (buttonRadialMirrorEnabled.isChecked()) {
+        if (buttonRadialMirrorEnabled.selected()) {
             radialMirrorIconButtonList.forEach(iconButton -> iconButton.drawTooltip(guiGraphics, scrollPane.parent, mouseX, mouseY));
             radialMirrorNumberFieldList.forEach(numberField -> numberField.drawTooltip(guiGraphics, scrollPane.parent, mouseX, mouseY));
         }
@@ -241,7 +244,7 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
     public boolean mousePressed(int slotIndex, int mouseX, int mouseY, int mouseEvent, int relativeX, int relativeY) {
         radialMirrorNumberFieldList.forEach(numberField -> numberField.mouseClicked(mouseX, mouseY, mouseEvent));
 
-        boolean insideRadialMirrorEnabledLabel = mouseX >= left && mouseX < right && relativeY >= -2 && relativeY < 12;
+        boolean insideRadialMirrorEnabledLabel = mouseX >= left && mouseX < right && relativeY >= 4 && relativeY < 16;
 
         if (insideRadialMirrorEnabledLabel) {
             buttonRadialMirrorEnabled.playDownSound(this.mc.getSoundManager());
@@ -252,7 +255,7 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
     }
 
     public RadialMirror.RadialMirrorSettings getRadialMirrorSettings() {
-        boolean radialMirrorEnabled = buttonRadialMirrorEnabled.isChecked();
+        boolean radialMirrorEnabled = buttonRadialMirrorEnabled.selected();
 
         var radialMirrorPos = new Vec3(0, 64, 0);
         try {
@@ -269,7 +272,7 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
             Effortless.log(mc.player, "Radial mirror slices not a valid number.");
         }
 
-        boolean radialMirrorAlternate = buttonRadialMirrorAlternate.isChecked();
+        boolean radialMirrorAlternate = buttonRadialMirrorAlternate.selected();
 
         int radialMirrorRadius = 50;
         try {
@@ -288,6 +291,6 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
 
     @Override
     protected int getExpandedHeight() {
-        return 128;
+        return 138;
     }
 }

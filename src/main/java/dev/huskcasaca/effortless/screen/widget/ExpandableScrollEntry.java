@@ -84,7 +84,7 @@ public abstract class ExpandableScrollEntry implements ScrollPane.IScrollEntry {
     }
 
     protected int getCollapsedHeight() {
-        return 24;
+        return 34;
     }
 
     protected int getExpandedHeight() {

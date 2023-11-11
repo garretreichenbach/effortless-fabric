@@ -5,7 +5,6 @@ import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import dev.huskcasaca.effortless.buildmodifier.array.Array;
 import dev.huskcasaca.effortless.building.ReachHelper;
 import dev.huskcasaca.effortless.screen.widget.ExpandableScrollEntry;
-import dev.huskcasaca.effortless.screen.widget.Checkbox;
 import dev.huskcasaca.effortless.screen.widget.NumberField;
 import dev.huskcasaca.effortless.screen.widget.ScrollPane;
 import net.fabricmc.api.EnvType;
@@ -13,6 +12,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
@@ -39,50 +39,42 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
     @Override
     public void init(List<Renderable> renderables) {
         super.init(renderables);
-
+        var modifierSettings = BuildModifierHelper.getModifierSettings(mc.player);
+        var arraySettings = (modifierSettings != null)? modifierSettings.arraySettings() : new Array.ArraySettings();
         int y = top;
-        buttonArrayEnabled = new Checkbox(left - 15 + 8, y, "", false) {
+        buttonArrayEnabled = new Checkbox(left - 25 + 8, y, 20, 20, Component.literal(""), arraySettings.enabled(), false) {
             @Override
-            public void onClick(double mouseX, double mouseY) {
-                super.onClick(mouseX, mouseY);
-                setCollapsed(!buttonArrayEnabled.isChecked());
+            public void onPress() {
+                super.onPress();
+                setCollapsed(!buttonArrayEnabled.selected());
             }
         };
         renderables.add(buttonArrayEnabled);
 
         y = top + 20;
         textArrayOffsetX = new NumberField(font, renderables, left + 60, y, 90, 18);
-        textArrayOffsetX.setNumber(0);
+        textArrayOffsetX.setNumber(arraySettings.offset().getX());
         textArrayOffsetX.setTooltip(Component.literal("How much each copy is shifted."));
         arrayNumberFieldList.add(textArrayOffsetX);
 
         textArrayOffsetY = new NumberField(font, renderables, left + 60, y + 24, 90, 18);
-        textArrayOffsetY.setNumber(0);
+        textArrayOffsetY.setNumber(arraySettings.offset().getY());
         textArrayOffsetY.setTooltip(Component.literal("How much each copy is shifted."));
         arrayNumberFieldList.add(textArrayOffsetY);
 
         textArrayOffsetZ = new NumberField(font, renderables, left + 60, y + 24 * 2, 90, 18);
-        textArrayOffsetZ.setNumber(0);
+        textArrayOffsetZ.setNumber(arraySettings.offset().getZ());
         textArrayOffsetZ.setTooltip(Component.literal("How much each copy is shifted."));
         arrayNumberFieldList.add(textArrayOffsetZ);
 
         textArrayCount = new NumberField(font, renderables, left + 200, y, 80, 18);
-        textArrayCount.setNumber(5);
+        textArrayCount.setNumber(arraySettings.count());
         textArrayCount.setTooltip(Component.literal("How many copies should be made."));
         arrayNumberFieldList.add(textArrayCount);
 
-        var modifierSettings = BuildModifierHelper.getModifierSettings(mc.player);
-        if (modifierSettings != null) {
-            var arraySettings = modifierSettings.arraySettings();
-            buttonArrayEnabled.setIsChecked(arraySettings.enabled());
-            textArrayOffsetX.setNumber(arraySettings.offset().getX());
-            textArrayOffsetY.setNumber(arraySettings.offset().getY());
-            textArrayOffsetZ.setNumber(arraySettings.offset().getZ());
-            textArrayCount.setNumber(arraySettings.count());
-        }
+        setCollapsed(!buttonArrayEnabled.selected());
+     }
 
-        setCollapsed(!buttonArrayEnabled.isChecked());
-    }
 
 
     @Override
@@ -92,14 +84,14 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
         int offset = 8;
 
         buttonArrayEnabled.render(guiGraphics, mouseX, mouseY, partialTicks);
-        if (buttonArrayEnabled.isChecked()) {
+        if (buttonArrayEnabled.selected()) {
             buttonArrayEnabled.setY(yy);
-            guiGraphics.drawString(font, "Array enabled", left + offset, yy + 2, 0xFFFFFF);
+            guiGraphics.drawString(font, "Array enabled", left + offset, yy + 8, 0xFFFFFF);
 
             var positionOffsetX0 = left + 8;
             var positionOffsetX1 = left + 160;
-            var positionOffsetY0 = y + 24;
-            var positionOffsetY1 = y + 24 * 2;
+            var positionOffsetY0 = y + 10 + 24;
+            var positionOffsetY1 = y + 10 + 24 * 2;
 
             var textOffsetX = 40;
             var componentOffsetX = 15;
@@ -126,14 +118,14 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
             arrayNumberFieldList.forEach(numberField -> numberField.render(guiGraphics, mouseX, mouseY, partialTicks));
         } else {
             buttonArrayEnabled.setY(yy);
-            guiGraphics.drawString(font, "Array disabled", left + offset, yy + 2, 0x999999);
+            guiGraphics.drawString(font, "Array disabled", left + offset, yy + 8, 0x999999);
         }
 
     }
 
     public void drawTooltip(GuiGraphics guiGraphics, Screen guiScreen, int mouseX, int mouseY) {
         //Draw tooltips last
-        if (buttonArrayEnabled.isChecked()) {
+        if (buttonArrayEnabled.selected()) {
             arrayNumberFieldList.forEach(numberField -> numberField.drawTooltip(guiGraphics, scrollPane.parent, mouseX, mouseY));
         }
     }
@@ -151,7 +143,7 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
     public boolean mousePressed(int slotIndex, int mouseX, int mouseY, int mouseEvent, int relativeX, int relativeY) {
         arrayNumberFieldList.forEach(numberField -> numberField.mouseClicked(mouseX, mouseY, mouseEvent));
 
-        boolean insideArrayEnabledLabel = mouseX >= left && mouseX < right && relativeY >= -2 && relativeY < 12;
+        boolean insideArrayEnabledLabel = mouseX >= left && mouseX < right && relativeY >= 4 && relativeY < 16;
 
         if (insideArrayEnabledLabel) {
             buttonArrayEnabled.playDownSound(this.mc.getSoundManager());
@@ -162,7 +154,7 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
     }
 
     public Array.ArraySettings getArraySettings() {
-        boolean arrayEnabled = buttonArrayEnabled.isChecked();
+        boolean arrayEnabled = buttonArrayEnabled.selected();
         var arrayOffset = new BlockPos(0, 0, 0);
         try {
             arrayOffset = BlockPos.containing(textArrayOffsetX.getNumber(), textArrayOffsetY.getNumber(), textArrayOffsetZ.getNumber());
@@ -187,7 +179,7 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
 
     @Override
     protected int getExpandedHeight() {
-        return 96;
+        return 106;
     }
 
     private int getArrayReach() {

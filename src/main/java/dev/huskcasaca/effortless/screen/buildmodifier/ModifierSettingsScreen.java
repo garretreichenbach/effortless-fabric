@@ -12,6 +12,7 @@ import net.fabricmc.api.Environment;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -103,7 +104,7 @@ public class ModifierSettingsScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         super.mouseClicked(mouseX, mouseY, button);
         renderables.forEach(renderable -> {
-            if (renderable instanceof Button btn) {
+            if (renderable instanceof AbstractButton btn) {
                 btn.mouseClicked(mouseX, mouseY, button);
             }
         });

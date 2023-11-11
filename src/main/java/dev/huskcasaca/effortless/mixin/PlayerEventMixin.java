@@ -4,6 +4,7 @@ package dev.huskcasaca.effortless.mixin;
 import dev.huskcasaca.effortless.Effortless;
 import net.minecraft.network.Connection;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.server.players.PlayerList;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,7 +16,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class PlayerEventMixin {
 
     @Inject(method = "placeNewPlayer", at = @At("RETURN"))
-    private void onPlayerLogin(Connection connection, ServerPlayer serverPlayer, CallbackInfo ci) {
+    private void onPlayerLogin(
+            Connection connection,
+            ServerPlayer serverPlayer,
+            CommonListenerCookie commonListenerCookie,
+            CallbackInfo ci
+    ) {
         Effortless.onPlayerLogin(serverPlayer);
     }
 

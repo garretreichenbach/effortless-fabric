@@ -1,7 +1,9 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
+import dev.huskcasaca.effortless.network.Packets;
+import net.fabricmc.fabric.api.networking.v1.FabricPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
 
 /***
  * Sends a message to the client asking for its lookat (objectmouseover) data.
@@ -9,8 +11,12 @@ import net.minecraft.network.protocol.Packet;
  */
 public record ClientboundPlayerRequestLookAtPacket(
         boolean placeStartPos
-) implements Packet<ClientEffortlessPacketListener> {
-
+) implements FabricPacket {
+    public static final PacketType<ClientboundPlayerRequestLookAtPacket> TYPE = PacketType.create(
+            Packets.S2C_PLAYER_REQUEST_LOOK_AT_PACKET, ClientboundPlayerRequestLookAtPacket::new
+    );
+    @Override
+    public PacketType<?> getType() { return TYPE; }
     public ClientboundPlayerRequestLookAtPacket() {
         this(false);
     }
@@ -22,10 +28,5 @@ public record ClientboundPlayerRequestLookAtPacket(
     @Override
     public void write(FriendlyByteBuf friendlyByteBuf) {
         friendlyByteBuf.writeBoolean(placeStartPos);
-    }
-
-    @Override
-    public void handle(ClientEffortlessPacketListener packetListener) {
-        packetListener.handle(this);
     }
 }

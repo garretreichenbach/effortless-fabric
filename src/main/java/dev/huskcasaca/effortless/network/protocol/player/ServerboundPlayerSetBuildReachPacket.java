@@ -1,13 +1,19 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
 import dev.huskcasaca.effortless.entity.player.ReachSettings;
+import dev.huskcasaca.effortless.network.Packets;
+import net.fabricmc.fabric.api.networking.v1.FabricPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
 
 public record ServerboundPlayerSetBuildReachPacket(
         ReachSettings reachSettings
-) implements Packet<ServerEffortlessPacketListener> {
-
+) implements FabricPacket {
+    public static final PacketType<ServerboundPlayerSetBuildReachPacket> TYPE = PacketType.create(
+            Packets.C2S_PLAYER_SET_BUILD_REACH_PACKET, ServerboundPlayerSetBuildReachPacket::new
+    );
+    @Override
+    public PacketType<?> getType() { return TYPE; }
     public ServerboundPlayerSetBuildReachPacket(FriendlyByteBuf friendlyByteBuf) {
         this(
                 new ReachSettings(
@@ -29,10 +35,5 @@ public record ServerboundPlayerSetBuildReachPacket(
         friendlyByteBuf.writeBoolean(reachSettings.canBreakFar());
         friendlyByteBuf.writeBoolean(reachSettings.enableUndoRedo());
         friendlyByteBuf.writeInt(reachSettings.undoStackSize());
-    }
-
-    @Override
-    public void handle(ServerEffortlessPacketListener packetListener) {
-        packetListener.handle(this);
     }
 }

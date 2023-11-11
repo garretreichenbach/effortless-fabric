@@ -10,11 +10,9 @@
     "PlayerEventMixin",
     "PlayerPickupMixin",
     "PlayerTagMixin",
-    "ServerPacketListenerMixin",
     "ServerPlayerEventMixin"
   ],
   "client": [
-    "ClientPacketListenerMixin",
     "GuiMixin",
     "KeyEventMixin",
     "PlayerActionMixin",

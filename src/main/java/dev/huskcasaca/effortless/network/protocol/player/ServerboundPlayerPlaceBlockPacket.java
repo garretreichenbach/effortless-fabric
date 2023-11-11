@@ -1,9 +1,11 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
+import dev.huskcasaca.effortless.network.Packets;
+import net.fabricmc.fabric.api.networking.v1.FabricPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -18,8 +20,12 @@ public record ServerboundPlayerPlaceBlockPacket(
         Direction hitSide,
         Vec3 hitVec,
         boolean placeStartPos //prevent double placing in normal mode
-) implements Packet<ServerEffortlessPacketListener> {
-
+) implements FabricPacket {
+    public static final PacketType<ServerboundPlayerPlaceBlockPacket> TYPE = PacketType.create(
+            Packets.C2S_PLAYER_PLACE_BLOCK_PACKET, ServerboundPlayerPlaceBlockPacket::new
+    );
+    @Override
+    public PacketType<?> getType() { return TYPE; }
 
     public ServerboundPlayerPlaceBlockPacket() {
         this(false, BlockPos.ZERO, Direction.UP, new Vec3(0, 0, 0), true);
@@ -47,10 +53,4 @@ public record ServerboundPlayerPlaceBlockPacket(
         friendlyByteBuf.writeDouble(hitVec.z);
         friendlyByteBuf.writeBoolean(placeStartPos);
     }
-
-    @Override
-    public void handle(ServerEffortlessPacketListener packetListener) {
-        packetListener.handle(this);
-    }
-
 }

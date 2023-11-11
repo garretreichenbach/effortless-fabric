@@ -14,8 +14,7 @@ import dev.huskcasaca.effortless.event.ClientScreenEvent;
 import dev.huskcasaca.effortless.event.ClientScreenInputEvent;
 import dev.huskcasaca.effortless.building.ReachHelper;
 import dev.huskcasaca.effortless.network.Packets;
-import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerBuildActionPacket;
-import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerSetBuildModePacket;
+import dev.huskcasaca.effortless.network.protocol.player.*;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.render.BuildRenderType;
 import dev.huskcasaca.effortless.render.ModifierRenderer;
@@ -27,16 +26,17 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.commands.Commands;
 import net.minecraft.server.packs.resources.ResourceProvider;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -244,6 +244,20 @@ public class EffortlessClient implements ClientModInitializer {
         // register key bindings
         Keys.register();
 
+        // Register network packet handlers
+        ClientPlayNetworking.registerGlobalReceiver(
+            ClientboundPlayerBuildModePacket.TYPE, EffortlessClient::handlePacket
+        );
+        ClientPlayNetworking.registerGlobalReceiver(
+            ClientboundPlayerBuildModifierPacket.TYPE, EffortlessClient::handlePacket
+        );
+        ClientPlayNetworking.registerGlobalReceiver(
+                ClientboundPlayerReachPacket.TYPE, EffortlessClient::handlePacket
+        );
+        ClientPlayNetworking.registerGlobalReceiver(
+                ClientboundPlayerRequestLookAtPacket.TYPE, EffortlessClient::handlePacket
+        );
+
         ClientScreenEvent.SCREEN_OPENING_EVENT.register(EffortlessClient::onScreenEvent);
 
         ClientScreenInputEvent.KEY_PRESS_EVENT.register(EffortlessClient::onKeyPress);
@@ -273,6 +287,35 @@ public class EffortlessClient implements ClientModInitializer {
 
         ModifierRenderer.getInstance().render(player, poseStack, bufferSource, camera);
     }
+    public static void handlePacket(
+            ClientboundPlayerBuildModePacket packet, LocalPlayer player, PacketSender sender
+    ) {
+        BuildModeHelper.setModeSettings(player, BuildModeHelper.sanitize(packet.modeSettings(), player));
+        BuildModeHandler.initializeMode(player);
+    }
 
+    public static void handlePacket(
+            ClientboundPlayerBuildModifierPacket packet, LocalPlayer player, PacketSender sender
+    ) {
+        BuildModifierHelper.setModifierSettings(player, BuildModifierHelper.sanitize(packet.modifierSettings(), player));
+    }
+
+    public static void handlePacket(
+            ClientboundPlayerReachPacket packet, LocalPlayer player, PacketSender sender
+    ) {
+
+        ReachHelper.setReachSettings(player, ReachHelper.sanitize(packet.reachSettings(), player));
+        BuildModeHandler.initializeMode(player);
+    }
+
+    public static void handlePacket(
+            ClientboundPlayerRequestLookAtPacket packet, LocalPlayer player, PacketSender sender
+    ) {
+        if (EffortlessClient.previousLookAt.getType() == HitResult.Type.BLOCK) {
+            Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket((BlockHitResult) EffortlessClient.previousLookAt, packet.placeStartPos()));
+        } else {
+            Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket());
+        }
+    }
 
 }

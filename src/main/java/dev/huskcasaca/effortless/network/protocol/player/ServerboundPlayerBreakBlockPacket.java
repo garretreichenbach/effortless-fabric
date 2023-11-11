@@ -1,9 +1,11 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
+import dev.huskcasaca.effortless.network.Packets;
+import net.fabricmc.fabric.api.networking.v1.FabricPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -16,8 +18,12 @@ public record ServerboundPlayerBreakBlockPacket(
         BlockPos blockPos,
         Direction hitSide,
         Vec3 hitVec
-) implements Packet<ServerEffortlessPacketListener> {
-
+) implements FabricPacket {
+    public static final PacketType<ServerboundPlayerBreakBlockPacket> TYPE = PacketType.create(
+            Packets.C2S_PLAYER_BREAK_BLOCK_PACKET, ServerboundPlayerBreakBlockPacket::new
+    );
+    @Override
+    public PacketType<?> getType() { return TYPE; }
     public ServerboundPlayerBreakBlockPacket() {
         // TODO: 17/9/22 use Vec3.ZERO?
         this(false, BlockPos.ZERO, Direction.UP, new Vec3(0, 0, 0));
@@ -40,10 +46,4 @@ public record ServerboundPlayerBreakBlockPacket(
         friendlyByteBuf.writeDouble(hitVec.y);
         friendlyByteBuf.writeDouble(hitVec.z);
     }
-
-    @Override
-    public void handle(ServerEffortlessPacketListener packetListener) {
-        packetListener.handle(this);
-    }
-
 }

@@ -1,15 +1,22 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
 import dev.huskcasaca.effortless.entity.player.ModifierSettings;
+import dev.huskcasaca.effortless.network.Packets;
+import net.fabricmc.fabric.api.networking.v1.FabricPacket;
+import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.protocol.Packet;
 
 /**
  * Shares modifier settings (see ModifierSettingsManager) between server and client
  */
 public record ClientboundPlayerBuildModifierPacket(
         ModifierSettings modifierSettings
-) implements Packet<ClientEffortlessPacketListener> {
+) implements FabricPacket {
+    public static final PacketType<ClientboundPlayerBuildModifierPacket> TYPE = PacketType.create(
+            Packets.S2C_PLAYER_BUILD_MODIFIER_PACKET, ClientboundPlayerBuildModifierPacket::new
+    );
+    @Override
+    public PacketType<?> getType() { return TYPE; }
 
     public ClientboundPlayerBuildModifierPacket(FriendlyByteBuf friendlyByteBuf) {
         this(ModifierSettings.decodeBuf(friendlyByteBuf));
@@ -19,12 +26,6 @@ public record ClientboundPlayerBuildModifierPacket(
     public void write(FriendlyByteBuf friendlyByteBuf) {
         ModifierSettings.write(friendlyByteBuf, modifierSettings);
     }
-
-    @Override
-    public void handle(ClientEffortlessPacketListener packetListener) {
-        packetListener.handle(this);
-    }
-
 }
 
 

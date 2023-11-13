@@ -254,9 +254,6 @@ public class EffortlessClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(
                 ClientboundPlayerReachPacket.TYPE, EffortlessClient::handlePacket
         );
-        ClientPlayNetworking.registerGlobalReceiver(
-                ClientboundPlayerRequestLookAtPacket.TYPE, EffortlessClient::handlePacket
-        );
 
         ClientScreenEvent.SCREEN_OPENING_EVENT.register(EffortlessClient::onScreenEvent);
 
@@ -307,15 +304,4 @@ public class EffortlessClient implements ClientModInitializer {
         ReachHelper.setReachSettings(player, ReachHelper.sanitize(packet.reachSettings(), player));
         BuildModeHandler.initializeMode(player);
     }
-
-    public static void handlePacket(
-            ClientboundPlayerRequestLookAtPacket packet, LocalPlayer player, PacketSender sender
-    ) {
-        if (EffortlessClient.previousLookAt.getType() == HitResult.Type.BLOCK) {
-            Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket((BlockHitResult) EffortlessClient.previousLookAt, packet.placeStartPos()));
-        } else {
-            Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket());
-        }
-    }
-
 }

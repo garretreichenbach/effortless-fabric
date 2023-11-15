@@ -23,9 +23,6 @@
     "client": [
       "dev.huskcasaca.effortless.EffortlessClient"
     ],
-    "server": [
-      "dev.huskcasaca.effortless.EffortlessServer"
-    ],
     "modmenu": [
       "dev.huskcasaca.effortless.EffortlessModmenu"
     ]

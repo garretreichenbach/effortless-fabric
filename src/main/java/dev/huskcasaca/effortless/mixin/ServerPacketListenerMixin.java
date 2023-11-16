@@ -1,6 +1,7 @@
 package dev.huskcasaca.effortless.mixin;
 
 import dev.huskcasaca.effortless.Effortless;
+import dev.huskcasaca.effortless.building.BuildHandler;
 import dev.huskcasaca.effortless.building.ReachHelper;
 import dev.huskcasaca.effortless.building.BuildActionHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
@@ -71,7 +72,7 @@ public abstract class ServerPacketListenerMixin implements ServerEffortlessPacke
     @Override
     public void handle(ServerboundPlayerBreakBlockPacket packet) {
         PacketUtils.ensureRunningOnSameThread(packet, this, player.serverLevel());
-        BuildModeHandler.onBlockBrokenPacketReceived(player, packet);
+        BuildHandler.onBlockBroken(player, packet);
     }
 
     @Override
@@ -83,7 +84,7 @@ public abstract class ServerPacketListenerMixin implements ServerEffortlessPacke
     @Override
     public void handle(ServerboundPlayerPlaceBlockPacket packet) {
         PacketUtils.ensureRunningOnSameThread(packet, this, player.serverLevel());
-        BuildModeHandler.onBlockPlacedPacketReceived(player, packet);
+        BuildHandler.onBlockPlaced(player, packet);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.buildmodifier;
 
+import dev.huskcasaca.effortless.building.ReachHelper;
 import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.buildmodifier.array.Array;
@@ -43,6 +44,14 @@ public class BuildModifierHandler {
         var coordinates = findCoordinates(player, startCoordinates);
         var itemStacks = new ArrayList<ItemStack>();
         var blockStates = findBlockStates(player, startCoordinates, hitVec, hitSide, itemStacks);
+
+        //Limit number of blocks you can place
+        int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
+        if (coordinates.size() > limit) {
+            coordinates = coordinates.subList(0, limit);
+            // blockStates is a map, the now-superfluous items will just sit there unused.
+        }
+
 
         //check if valid blockstates
         if (blockStates.size() == 0 || coordinates.size() != blockStates.size()) return;

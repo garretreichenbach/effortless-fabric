@@ -3,6 +3,7 @@ package dev.huskcasaca.effortless.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.huskcasaca.effortless.Effortless;
 import dev.huskcasaca.effortless.EffortlessClient;
+import dev.huskcasaca.effortless.building.BuildHandler;
 import dev.huskcasaca.effortless.buildmode.BuildMode;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
@@ -301,10 +302,9 @@ public class BlockPreviewRenderer {
 
         //Keep blockstate the same for every block in the buildmode
         //So dont rotate blocks when in the middle of placing wall etc.
-        if (BuildModeHandler.isActive(player)) {
-            Buildable buildModeInstance = BuildModeHelper.getBuildMode(player).getInstance();
-            if (buildModeInstance.getHitSide(player) != null) hitSide = buildModeInstance.getHitSide(player);
-            if (buildModeInstance.getHitVec(player) != null) hitVec = buildModeInstance.getHitVec(player);
+        if (BuildHandler.isActive(player)) {
+            if (BuildHandler.getHitSide(player) != null) hitSide = BuildHandler.getHitSide(player);
+            if (BuildHandler.getHitVec(player) != null) hitVec = BuildHandler.getHitVec(player);
         }
 
         if (hitSide == null) {
@@ -313,7 +313,7 @@ public class BlockPreviewRenderer {
         }
 
         //Should be red?
-        var breaking = BuildModeHandler.isCurrentlyBreaking(player);
+        var breaking = BuildHandler.isCurrentlyBreaking(player);
 
         //get coordinates
         var skipRaytrace = breaking || BuildModifierHelper.isQuickReplace(player);
@@ -392,7 +392,7 @@ public class BlockPreviewRenderer {
 
         currentPlacing.add(new Preview(getBlockPosStates(player, newCoordinates, blockStates), placeResult, firstPos, secondPos, EffortlessClient.getTicksInGame(), false));
 
-        if (!BuildModeHandler.isActive(player)) {
+        if (!BuildHandler.isActive(player)) {
             clearActionBarMessage(player);
             return;
         }

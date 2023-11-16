@@ -17,7 +17,7 @@ public class Disable extends OneClickBuildable {
     }
 
     @Override
-    public List<BlockPos> onUse(Player player, BlockPos blockPos, Direction hitSide, Vec3 hitVec, boolean skipRaytrace) {
+    public List<BlockPos> onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
         if (blockPos == null) return Collections.emptyList();
         return getFinalBlocks(player, blockPos.getX(), blockPos.getY(), blockPos.getZ());
     }
@@ -26,16 +26,6 @@ public class Disable extends OneClickBuildable {
     public List<BlockPos> findCoordinates(Player player, BlockPos blockPos, boolean skipRaytrace) {
         if (blockPos == null) return Collections.emptyList();
         return getFinalBlocks(player, blockPos.getX(), blockPos.getY(), blockPos.getZ());
-    }
-
-    @Override
-    public Direction getHitSide(Player player) {
-        return null;
-    }
-
-    @Override
-    public Vec3 getHitVec(Player player) {
-        return null;
     }
 
     @Override

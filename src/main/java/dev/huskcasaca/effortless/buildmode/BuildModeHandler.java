@@ -25,39 +25,27 @@ import java.util.List;
 
 public class BuildModeHandler {
 
-    //Static variables are shared between client and server in singleplayer
-    //We need them separate
-    private static final Dictionary<Player, Boolean> currentlyBreakingClient = new Hashtable<>();
-    private static final Dictionary<Player, Boolean> currentlyBreakingServer = new Hashtable<>();
-
-    //Uses a network message to get the previous raytraceresult from the player
-    //The server could keep track of all raytraceresults but this might lag with many players
-    //Raytraceresult is needed for hitSide and hitVec
-    public static void onBlockPlacedPacketReceived(Player player, ServerboundPlayerPlaceBlockPacket packet) {
-
-        //Check if not in the middle of breaking
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        if (currentlyBreaking.get(player) != null && currentlyBreaking.get(player)) {
-            //Cancel breaking
-            initializeMode(player);
-            return;
-        }
-
+    /**
+     * Given the blockpos and raytrace hit result, Tell us where blocks should be placed in current mode.
+     * Stateful: Might only return sensible data after multiple clicks (i.e. calls).
+     * @param player
+     * @param blockPos
+     * @param hitSide
+     * @return list of block positions; empty list if needing another click; null if invalid click.
+     */
+    public static List<BlockPos> getPlaceCoordinates(Player player, BlockPos blockPos, Direction hitSide) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
         var modeSettings = BuildModeHelper.getModeSettings(player);
         var buildMode = modeSettings.buildMode();
-
         BlockPos startPos = null;
-
-        if (packet.blockHit() && packet.blockPos() != null) {
-            startPos = packet.blockPos();
-
+        // Find actual start pos
+        if (blockPos != null) {
+            startPos = blockPos;
             //Offset in direction of hitSide if not quickreplace and not replaceable
-            //TODO 1.13 replaceable
             boolean replaceable = player.level().getBlockState(startPos).canBeReplaced();
-            boolean becomesDoubleSlab = SurvivalHelper.doesBecomeDoubleSlab(player, startPos, packet.hitSide());
+            boolean becomesDoubleSlab = SurvivalHelper.doesBecomeDoubleSlab(player, startPos, hitSide);
             if (!modifierSettings.enableQuickReplace() && !replaceable && !becomesDoubleSlab) {
-                startPos = startPos.relative(packet.hitSide());
+                startPos = startPos.relative(hitSide);
             }
 
             //Get under tall grass and other replaceable blocks
@@ -69,84 +57,32 @@ public class BuildModeHandler {
             int maxReach = ReachHelper.getMaxReachDistance(player);
             if (buildMode != BuildMode.DISABLE && player.blockPosition().distSqr(startPos) > maxReach * maxReach) {
                 Effortless.log(player, "Placement exceeds your reach.");
-                return;
+                return null;
             }
         }
 
         //Even when no starting block is found, call buildmode instance
         //We might want to place things in the air
         var skipRaytrace = modifierSettings.enableQuickReplace();
-        var coordinates = buildMode.getInstance().onUse(player, startPos, packet.hitSide(), packet.hitVec(), skipRaytrace);
-
-        if (coordinates.isEmpty()) {
-            currentlyBreaking.put(player, false);
-            return;
-        }
-
-        //Limit number of blocks you can place
-        int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
-        if (coordinates.size() > limit) {
-            coordinates = coordinates.subList(0, limit);
-        }
-
-        var hitSide = buildMode.getInstance().getHitSide(player);
-        if (hitSide == null) hitSide = packet.hitSide();
-
-        var hitVec = buildMode.getInstance().getHitVec(player);
-        if (hitVec == null) hitVec = packet.hitVec();
-
-        BuildModifierHandler.onBlockPlaced(player, coordinates, hitSide, hitVec, packet.placeStartPos());
-
-        //Only works when finishing a buildmode is equal to placing some blocks
-        //No intermediate blocks allowed
-        currentlyBreaking.remove(player);
-
+        return buildMode.getInstance().onUse(player, startPos, skipRaytrace);
     }
 
-    //Use a network packet to break blocks in the distance using clientside mouse input
-    public static void onBlockBrokenPacketReceived(Player player, ServerboundPlayerBreakBlockPacket packet) {
-        var startPos = packet.blockHit() ? packet.blockPos() : null;
-        onBlockBroken(player, startPos, true);
-    }
-
-    public static void onBlockBroken(Player player, BlockPos startPos, boolean breakStartPos) {
-
-        //Check if not in the middle of placing
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        if (currentlyBreaking.get(player) != null && !currentlyBreaking.get(player)) {
-            //Cancel placing
-            initializeMode(player);
-            return;
-        }
-
-        if (!ReachHelper.isCanBreakFar(player)) return;
-
-        //If first click
-        if (currentlyBreaking.get(player) == null) {
-            //If startpos is null, dont do anything
-            if (startPos == null) return;
-        }
-
-        var modifierSettings = BuildModifierHelper.getModifierSettings(player);
+    /**
+     * Given the startPos, tell us which blocks will be broken.
+     * Stateful: Might only return sensible data after multiple clicks (i.e. calls).
+     * @param player
+     * @param startPos
+     * @return list of block positions; empty list if needing another click; null if invalid click.
+     */
+    public static List<BlockPos> getBreakCoordinates(Player player, BlockPos startPos) {
         var modeSettings = BuildModeHelper.getModeSettings(player);
 
         //Get coordinates
         var buildMode = modeSettings.buildMode();
-        var coordinates = buildMode.getInstance().onUse(player, startPos, Direction.UP, Vec3.ZERO, true);
-
-        if (coordinates.isEmpty()) {
-            currentlyBreaking.put(player, true);
-            return;
-        }
-
-        //Let buildmodifiers break blocks
-        BuildModifierHandler.onBlockBroken(player, coordinates, breakStartPos);
-
-        //Only works when finishing a buildmode is equal to breaking some blocks
-        //No intermediate blocks allowed
-        currentlyBreaking.remove(player);
+        return buildMode.getInstance().onUse(player, startPos, true);
     }
 
+    // get current BlockPos set in intermediate state (tracking mouse)
     public static List<BlockPos> findCoordinates(Player player, BlockPos startPos, boolean skipRaytrace) {
         List<BlockPos> coordinates = new ArrayList<>();
 
@@ -157,30 +93,7 @@ public class BuildModeHandler {
     }
 
     public static void initializeMode(Player player) {
-        //Resetting mode, so not placing or breaking
-        if (player == null) {
-            return;
-        }
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        currentlyBreaking.remove(player);
-
         BuildModeHelper.getModeSettings(player).buildMode().getInstance().initialize(player);
-    }
-
-    public static boolean isCurrentlyPlacing(Player player) {
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        return currentlyBreaking.get(player) != null && !currentlyBreaking.get(player);
-    }
-
-    public static boolean isCurrentlyBreaking(Player player) {
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        return currentlyBreaking.get(player) != null && currentlyBreaking.get(player);
-    }
-
-    //Either placing or breaking
-    public static boolean isActive(Player player) {
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        return currentlyBreaking.get(player) != null;
     }
 
     //Find coordinates on a line bound by a plane

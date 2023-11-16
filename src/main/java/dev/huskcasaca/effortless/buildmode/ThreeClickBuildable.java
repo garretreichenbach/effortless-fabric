@@ -190,7 +190,7 @@ public abstract class ThreeClickBuildable extends MultipleClickBuildable {
     }
 
     @Override
-    public List<BlockPos> onUse(Player player, BlockPos blockPos, Direction hitSide, Vec3 hitVec, boolean skipRaytrace) {
+    public List<BlockPos> onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
         List<BlockPos> list = new ArrayList<>();
 
         var rightClickTable = player.level().isClientSide ? rightClickTableClient : rightClickTableServer;
@@ -207,8 +207,6 @@ public abstract class ThreeClickBuildable extends MultipleClickBuildable {
 
             //First click, remember starting position
             firstPosTable.put(player.getUUID(), blockPos);
-            hitSideTable.put(player.getUUID(), hitSide);
-            hitVecTable.put(player.getUUID(), hitVec);
             //Keep list empty, dont place any blocks yet
         } else if (rightClickNr == 2) {
             //Second click, find other floor point

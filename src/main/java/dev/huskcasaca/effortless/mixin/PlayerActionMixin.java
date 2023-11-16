@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.mixin;
 
+import dev.huskcasaca.effortless.building.BuildHandler;
 import dev.huskcasaca.effortless.buildmode.BuildMode;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
@@ -71,7 +72,7 @@ public abstract class PlayerActionMixin {
         if (lookingAt != null && lookingAt.getType() == HitResult.Type.BLOCK) {
             BlockHitResult blockLookingAt = (BlockHitResult) lookingAt;
 
-            BuildModeHandler.onBlockBrokenPacketReceived(player, new ServerboundPlayerBreakBlockPacket(blockLookingAt));
+            BuildHandler.onBlockBroken(player, new ServerboundPlayerBreakBlockPacket(blockLookingAt));
             Packets.sendToServer(new ServerboundPlayerBreakBlockPacket(blockLookingAt));
 
             //play sound if further than normal
@@ -85,7 +86,7 @@ public abstract class PlayerActionMixin {
             }
             cir.setReturnValue(true);
         } else {
-            BuildModeHandler.onBlockBrokenPacketReceived(player, new ServerboundPlayerBreakBlockPacket());
+            BuildHandler.onBlockBroken(player, new ServerboundPlayerBreakBlockPacket());
             Packets.sendToServer(new ServerboundPlayerBreakBlockPacket());
             cir.setReturnValue(false);
         }
@@ -138,7 +139,7 @@ public abstract class PlayerActionMixin {
             if (lookingAt.getType() == HitResult.Type.BLOCK) {
                 //find position in distance
                 BlockHitResult blockLookingAt = (BlockHitResult) lookingAt;
-                BuildModeHandler.onBlockPlacedPacketReceived(player, new ServerboundPlayerPlaceBlockPacket(blockLookingAt, true));
+                BuildHandler.onBlockPlaced(player, new ServerboundPlayerPlaceBlockPacket(blockLookingAt, true));
                 Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket(blockLookingAt, true));
                 //play sound if further than normal
                 if ((blockLookingAt.getLocation().subtract(player.getEyePosition(1f))).lengthSqr() > 25f) {
@@ -151,7 +152,7 @@ public abstract class PlayerActionMixin {
                 }
             } else {
 
-                BuildModeHandler.onBlockPlacedPacketReceived(player, new ServerboundPlayerPlaceBlockPacket());
+                BuildHandler.onBlockPlaced(player, new ServerboundPlayerPlaceBlockPacket());
                 Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket());
             }
             ci.cancel();

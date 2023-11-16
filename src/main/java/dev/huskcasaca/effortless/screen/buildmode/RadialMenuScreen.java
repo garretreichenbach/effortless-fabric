@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import dev.huskcasaca.effortless.building.BuildAction;
 import dev.huskcasaca.effortless.building.BuildActionHandler;
+import dev.huskcasaca.effortless.building.BuildHandler;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.sounds.SoundManager;
 import org.joml.Vector4f;
@@ -515,9 +516,6 @@ public class RadialMenuScreen extends Screen {
             lastAction = null;
             modeSettings = new ModeSettings(switchTo, modeSettings.enableMagnet());
             BuildModeHelper.setModeSettings(player, modeSettings);
-            if (player != null) {
-                BuildModeHandler.initializeMode(player);
-            }
             Packets.sendToServer(new ServerboundPlayerSetBuildModePacket(modeSettings));
 
             if (fromMouseClick) {

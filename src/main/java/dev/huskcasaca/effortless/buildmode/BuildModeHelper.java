@@ -2,6 +2,7 @@ package dev.huskcasaca.effortless.buildmode;
 
 import dev.huskcasaca.effortless.Effortless;
 import dev.huskcasaca.effortless.building.BuildActionHandler;
+import dev.huskcasaca.effortless.building.BuildHandler;
 import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
 import dev.huskcasaca.effortless.entity.player.ModeSettings;
 import dev.huskcasaca.effortless.building.ReachHelper;
@@ -34,6 +35,7 @@ public class BuildModeHelper {
             return;
         }
         ((EffortlessDataProvider) player).setModeSettings(modeSettings);
+        BuildHandler.initialize(player);
     }
 
     public static BuildMode getBuildMode(Player player) {

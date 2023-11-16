@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import dev.huskcasaca.effortless.building.BuildAction;
 import dev.huskcasaca.effortless.building.BuildActionHandler;
+import dev.huskcasaca.effortless.building.BuildHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
@@ -192,7 +193,6 @@ public class EffortlessClient implements ClientModInitializer {
         if (player != null) {
             var modeSettings = BuildModeHelper.getModeSettings(player);
             BuildModeHelper.setModeSettings(player, modeSettings);
-            BuildModeHandler.initializeMode(player);
             Packets.sendToServer(new ServerboundPlayerSetBuildModePacket(modeSettings));
         }
     }
@@ -288,7 +288,6 @@ public class EffortlessClient implements ClientModInitializer {
             ClientboundPlayerBuildModePacket packet, LocalPlayer player, PacketSender sender
     ) {
         BuildModeHelper.setModeSettings(player, BuildModeHelper.sanitize(packet.modeSettings(), player));
-        BuildModeHandler.initializeMode(player);
     }
 
     public static void handlePacket(
@@ -302,6 +301,6 @@ public class EffortlessClient implements ClientModInitializer {
     ) {
 
         ReachHelper.setReachSettings(player, ReachHelper.sanitize(packet.reachSettings(), player));
-        BuildModeHandler.initializeMode(player);
+        BuildHandler.initialize(player);
     }
 }

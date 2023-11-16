@@ -15,25 +15,11 @@ public abstract class MultipleClickBuildable implements Buildable {
     protected Dictionary<UUID, Integer> rightClickTableClient = new Hashtable<>();
     protected Dictionary<UUID, Integer> rightClickTableServer = new Hashtable<>();
     protected Dictionary<UUID, BlockPos> firstPosTable = new Hashtable<>();
-    protected Dictionary<UUID, Direction> hitSideTable = new Hashtable<>();
-    protected Dictionary<UUID, Vec3> hitVecTable = new Hashtable<>();
 
     @Override
     public void initialize(Player player) {
         rightClickTableClient.put(player.getUUID(), 0);
         rightClickTableServer.put(player.getUUID(), 0);
         firstPosTable.put(player.getUUID(), BlockPos.ZERO);
-        hitSideTable.put(player.getUUID(), Direction.UP);
-        hitVecTable.put(player.getUUID(), Vec3.ZERO);
-    }
-
-    @Override
-    public Direction getHitSide(Player player) {
-        return hitSideTable.get(player.getUUID());
-    }
-
-    @Override
-    public Vec3 getHitVec(Player player) {
-        return hitVecTable.get(player.getUUID());
     }
 }

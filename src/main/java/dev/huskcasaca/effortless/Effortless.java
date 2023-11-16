@@ -1,6 +1,7 @@
 package dev.huskcasaca.effortless;
 
 import dev.huskcasaca.effortless.building.BuildActionHandler;
+import dev.huskcasaca.effortless.building.BuildHandler;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHandler;
 import dev.huskcasaca.effortless.entity.player.ModeSettings;
 import dev.huskcasaca.effortless.building.ReachHelper;
@@ -115,7 +116,7 @@ public class Effortless implements ModInitializer {
     }
     public static void handlePacket(ServerboundPlayerBreakBlockPacket packet, ServerPlayer player, PacketSender sender) {
         Effortless.log("handlePacket: ServerboundPlayerBreakBlockPacket");
-        BuildModeHandler.onBlockBrokenPacketReceived(player, packet);
+        BuildHandler.onBlockBroken(player, packet);
     }
 
     public static void handlePacket(ServerboundPlayerBuildActionPacket packet, ServerPlayer player, PacketSender sender) {
@@ -123,11 +124,10 @@ public class Effortless implements ModInitializer {
     }
 
     public static void handlePacket(ServerboundPlayerPlaceBlockPacket packet, ServerPlayer player, PacketSender sender) {
-        BuildModeHandler.onBlockPlacedPacketReceived(player, packet);
+        BuildHandler.onBlockPlaced(player, packet);
     }
     public static void handlePacket(ServerboundPlayerSetBuildModePacket packet, ServerPlayer player, PacketSender sender) {
         BuildModeHelper.setModeSettings(player, BuildModeHelper.sanitize(packet.modeSettings(), player));
-        BuildModeHandler.initializeMode(player);
     }
 
 
@@ -137,7 +137,7 @@ public class Effortless implements ModInitializer {
 
     public static void handlePacket(ServerboundPlayerSetBuildReachPacket packet, ServerPlayer player, PacketSender sender) {
         ReachHelper.setReachSettings(player, ReachHelper.sanitize(packet.reachSettings(), player));
-        BuildModeHandler.initializeMode(player);
+        BuildHandler.initialize(player);
     }
 
 }

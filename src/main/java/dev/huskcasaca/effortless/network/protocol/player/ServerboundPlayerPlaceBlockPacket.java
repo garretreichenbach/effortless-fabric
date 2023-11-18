@@ -19,7 +19,8 @@ public record ServerboundPlayerPlaceBlockPacket(
         BlockPos blockPos,
         Direction hitSide,
         Vec3 hitVec,
-        boolean placeStartPos //prevent double placing in normal mode
+        // Unused - left in for compat
+        boolean placeStartPos
 ) implements FabricPacket {
     public static final PacketType<ServerboundPlayerPlaceBlockPacket> TYPE = PacketType.create(
             Packets.C2S_PLAYER_PLACE_BLOCK_PACKET, ServerboundPlayerPlaceBlockPacket::new
@@ -31,8 +32,8 @@ public record ServerboundPlayerPlaceBlockPacket(
         this(false, BlockPos.ZERO, Direction.UP, new Vec3(0, 0, 0), true);
     }
 
-    public ServerboundPlayerPlaceBlockPacket(BlockHitResult result, boolean placeStartPos) {
-        this(result.getType() == HitResult.Type.BLOCK, result.getBlockPos(), result.getDirection(), result.getLocation(), placeStartPos);
+    public ServerboundPlayerPlaceBlockPacket(BlockHitResult result) {
+        this(result.getType() == HitResult.Type.BLOCK, result.getBlockPos(), result.getDirection(), result.getLocation(), true);
     }
 
     public ServerboundPlayerPlaceBlockPacket(FriendlyByteBuf friendlyByteBuf) {

@@ -1,17 +1,13 @@
 package dev.huskcasaca.effortless.buildmodifier;
 
-import dev.huskcasaca.effortless.building.ReachHelper;
-import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
-import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.buildmodifier.array.Array;
 import dev.huskcasaca.effortless.buildmodifier.mirror.Mirror;
 import dev.huskcasaca.effortless.buildmodifier.mirror.RadialMirror;
+import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
 import dev.huskcasaca.effortless.entity.player.ModifierSettings;
-import dev.huskcasaca.effortless.utils.CompatHelper;
-import dev.huskcasaca.effortless.utils.InventoryHelper;
-import dev.huskcasaca.effortless.utils.SurvivalHelper;
 import dev.huskcasaca.effortless.network.Packets;
 import dev.huskcasaca.effortless.network.protocol.player.ClientboundPlayerBuildModifierPacket;
+import dev.huskcasaca.effortless.utils.CompatHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,7 +19,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -31,160 +26,6 @@ import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
 public class BuildModifierHandler {
-
-    //Called from BuildModes
-    public static void onBlockPlaced(Player player, List<BlockPos> startCoordinates, Direction hitSide, Vec3 hitVec, boolean placeStartPos) {
-        var level = player.level();
-//		AbstractRandomizerBagItem.renewRandomness();
-
-        //Format hitvec to 0.x
-        hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
-
-        //find coordinates and blockstates
-        var coordinates = findCoordinates(player, startCoordinates);
-        var itemStacks = new ArrayList<ItemStack>();
-        var blockStates = findBlockStates(player, startCoordinates, hitVec, hitSide, itemStacks);
-
-        //Limit number of blocks you can place
-        int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
-        if (coordinates.size() > limit) {
-            coordinates = coordinates.subList(0, limit);
-            // blockStates is a map, the now-superfluous items will just sit there unused.
-        }
-
-
-        //check if valid blockstates
-        if (blockStates.size() == 0 || coordinates.size() != blockStates.size()) return;
-
-        //remember previous blockstates for undo
-        var previousBlockStates = new ArrayList<BlockState>(coordinates.size());
-        var newBlockStates = new ArrayList<BlockState>(coordinates.size());
-        for (var coordinate : coordinates) {
-            previousBlockStates.add(level.getBlockState(coordinate));
-        }
-
-        if (level.isClientSide) {
-
-            BlockPreviewRenderer.getInstance().onBlocksPlaced();
-//            if (!itemStacks.isEmpty()) {
-            var blockLeft = new HashMap<Block, Integer>();
-
-            for (int i = placeStartPos ? 0 : 1; i < coordinates.size(); i++) {
-                var blockPos = coordinates.get(i);
-                var blockState = blockStates.get(blockPos);
-                var itemStack = itemStacks.get(i);
-                if (!blockLeft.containsKey(blockState.getBlock())) {
-                    blockLeft.put(blockState.getBlock(), InventoryHelper.findTotalBlocksInInventory(player, blockState.getBlock()));
-                }
-                var count = blockLeft.getOrDefault(blockState.getBlock(), 0);
-                if (player.isCreative() || count > 0) {
-                    if (level.isLoaded(blockPos)) {
-                        SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack.copy(), hitSide, hitVec, false, false, false);
-                        if (!player.isCreative()) {
-                            blockLeft.put(blockState.getBlock(), count - 1);
-                        }
-                    }
-                }
-            }
-//            }
-            //find actual new blockstates for undo
-            for (var coordinate : coordinates) {
-                newBlockStates.add(level.getBlockState(coordinate));
-            }
-        } else {
-
-            //place blocks
-            for (int i = placeStartPos ? 0 : 1; i < coordinates.size(); i++) {
-                var blockPos = coordinates.get(i);
-                var blockState = blockStates.get(blockPos);
-                var itemStack = itemStacks.get(i);
-
-                if (level.isLoaded(blockPos)) {
-                    //check itemstack empty
-                    if (itemStack.isEmpty()) {
-                        //try to find new stack, otherwise continue
-                        itemStack = InventoryHelper.findItemStackInInventory(player, blockState.getBlock());
-                        if (itemStack.isEmpty()) continue;
-                    }
-                    SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack, hitSide, hitVec, false, false, false);
-                }
-            }
-            //find actual new blockstates for undo
-            for (var coordinate : coordinates) {
-                newBlockStates.add(level.getBlockState(coordinate));
-            }
-        }
-
-        //Set first previousBlockState to empty if in NORMAL mode, to make undo/redo work
-        //(Block is placed by the time it gets here, and unplaced after this)
-        if (!placeStartPos) previousBlockStates.set(0, Blocks.AIR.defaultBlockState());
-
-        //If all new blockstates are air then no use in adding it, no block was actually placed
-        //Can happen when e.g. placing one block in yourself
-        if (Collections.frequency(newBlockStates, Blocks.AIR.defaultBlockState()) != newBlockStates.size()) {
-            //add to undo stack
-            var firstPos = startCoordinates.get(0);
-            var secondPos = startCoordinates.get(startCoordinates.size() - 1);
-            UndoRedo.addUndo(player, new BlockSet(coordinates, previousBlockStates, newBlockStates, hitVec, firstPos, secondPos));
-        }
-    }
-
-    public static void onBlockBroken(Player player, List<BlockPos> startCoordinates, boolean breakStartPos) {
-        var level = player.level();
-
-        var coordinates = findCoordinates(player, startCoordinates);
-
-        if (coordinates.isEmpty()) return;
-
-        //remember previous blockstates for undo
-        List<BlockState> previousBlockStates = new ArrayList<>(coordinates.size());
-        List<BlockState> newBlockStates = new ArrayList<>(coordinates.size());
-
-        for (var coordinate : coordinates) {
-            previousBlockStates.add(level.getBlockState(coordinate));
-        }
-
-        if (level.isClientSide) {
-            BlockPreviewRenderer.getInstance().onBlocksBroken();
-
-            //list of air blockstates
-//            for (int i = 0; i < coordinates.size(); i++) {
-//                newBlockStates.add(Blocks.AIR.defaultBlockState());
-//            }
-
-        }
-//        else {
-        //If the player is going to inst-break grass or a plant, make sure to only break other inst-breakable things
-        boolean onlyInstaBreaking = !player.isCreative() &&
-                level.getBlockState(startCoordinates.get(0)).getDestroySpeed(level, startCoordinates.get(0)) == 0f;
-
-        //break all those blocks
-        for (int i = breakStartPos ? 0 : 1; i < coordinates.size(); i++) {
-            var coordinate = coordinates.get(i);
-            if (level.isLoaded(coordinate) && !level.isEmptyBlock(coordinate)) {
-                if (!onlyInstaBreaking || level.getBlockState(coordinate).getDestroySpeed(level, coordinate) == 0f) {
-                    SurvivalHelper.breakBlock(level, player, coordinate, false);
-                }
-            }
-        }
-
-        //find actual new blockstates for undo
-        for (var coordinate : coordinates) {
-            newBlockStates.add(level.getBlockState(coordinate));
-        }
-//        }
-
-        //Set first newBlockState to empty if in NORMAL mode, to make undo/redo work
-        //(Block isn't broken yet by the time it gets here, and broken after this)
-        if (!breakStartPos) newBlockStates.set(0, Blocks.AIR.defaultBlockState());
-
-        //add to undo stack
-        var firstPos = startCoordinates.get(0);
-        var secondPos = startCoordinates.get(startCoordinates.size() - 1);
-        var hitVec = new Vec3(0.5, 0.5, 0.5);
-        UndoRedo.addUndo(player, new BlockSet(coordinates, previousBlockStates, newBlockStates, hitVec, firstPos, secondPos));
-
-    }
 
     public static List<BlockPos> findCoordinates(Player player, List<BlockPos> posList) {
         //Add current blocks being placed too

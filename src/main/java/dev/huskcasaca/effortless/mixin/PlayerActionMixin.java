@@ -139,8 +139,8 @@ public abstract class PlayerActionMixin {
             if (lookingAt.getType() == HitResult.Type.BLOCK) {
                 //find position in distance
                 BlockHitResult blockLookingAt = (BlockHitResult) lookingAt;
-                BuildHandler.onBlockPlaced(player, new ServerboundPlayerPlaceBlockPacket(blockLookingAt, true));
-                Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket(blockLookingAt, true));
+                BuildHandler.onBlockPlaced(player, new ServerboundPlayerPlaceBlockPacket(blockLookingAt));
+                Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket(blockLookingAt));
                 //play sound if further than normal
                 if ((blockLookingAt.getLocation().subtract(player.getEyePosition(1f))).lengthSqr() > 25f) {
                     var state = ((BlockItem) itemStack.getItem()).getBlock().defaultBlockState();

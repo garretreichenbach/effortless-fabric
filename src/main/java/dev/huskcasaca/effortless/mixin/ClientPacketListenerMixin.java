@@ -92,7 +92,7 @@ public abstract class ClientPacketListenerMixin implements ClientEffortlessPacke
 //            //Prevent double placing in normal mode with placeStartPos false
 //            //Unless QuickReplace is on, then we do need to place start pos.
         if (EffortlessClient.previousLookAt.getType() == HitResult.Type.BLOCK) {
-            Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket((BlockHitResult) EffortlessClient.previousLookAt, packet.placeStartPos()));
+            Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket((BlockHitResult) EffortlessClient.previousLookAt));
         } else {
             Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket());
         }

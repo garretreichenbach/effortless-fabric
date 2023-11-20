@@ -51,11 +51,10 @@ public class BuildModifierHandler {
         return findCoordinates(player, new ArrayList<>(Collections.singletonList(blockPos)));
     }
 
-    public static Map<BlockPos, BlockState> findBlockStates(Player player, List<BlockPos> posList, Vec3 hitVec, Direction facing, List<ItemStack> itemStacks) {
+    public static Map<BlockPos, BlockState> findBlockStates(Player player, List<BlockPos> posList, Vec3 hitVec, Direction facing) {
         var blockStates = new LinkedHashMap<BlockPos, BlockState>();
-        itemStacks.clear();
 
-        //Get itemstack
+        //Get itemstack - either a BlockItem or a proxy (container) that provides Items (e.g. RandomizerBag)
         ItemStack itemStack = player.getItemInHand(InteractionHand.MAIN_HAND);
         if (itemStack.isEmpty() || !CompatHelper.isItemBlockProxy(itemStack)) {
             itemStack = player.getItemInHand(InteractionHand.OFF_HAND);
@@ -74,32 +73,25 @@ public class BuildModifierHandler {
         for (var blockPos : posList) {
             if (!(itemStack.getItem() instanceof BlockItem)) itemBlock = CompatHelper.getItemBlockFromStack(itemStack);
             BlockState blockState = getBlockStateFromItem(itemBlock, player, blockPos, facing, hitVec, InteractionHand.MAIN_HAND);
-//            Effortless.log(player, "getBlockStateFromItem " + blockState);
             if (blockState == null) continue;
-
             blockStates.put(blockPos, blockState);
-            itemStacks.add(itemBlock);
         }
 
         for (var blockPos : posList) {
             BlockState blockState = getBlockStateFromItem(itemBlock, player, blockPos, facing, hitVec, InteractionHand.MAIN_HAND);
             if (blockState == null) continue;
 
-            var arrayBlockStates = Array.findBlockStates(player, blockPos, blockState, itemStack, itemStacks);
+            var arrayBlockStates = Array.findBlockStates(player, blockPos, blockState);
             blockStates.putAll(arrayBlockStates);
-
-            blockStates.putAll(Mirror.findBlockStates(player, blockPos, blockState, itemStack, itemStacks));
-            blockStates.putAll(RadialMirror.findBlockStates(player, blockPos, blockState, itemStack, itemStacks));
+            blockStates.putAll(Mirror.findBlockStates(player, blockPos, blockState));
+            blockStates.putAll(RadialMirror.findBlockStates(player, blockPos, blockState));
             //add mirror for each array coordinate
             for (BlockPos coordinate : Array.findCoordinates(player, blockPos)) {
                 var blockState1 = arrayBlockStates.get(coordinate);
                 if (blockState1 == null) continue;
-
-                blockStates.putAll(Mirror.findBlockStates(player, coordinate, blockState1, itemStack, itemStacks));
-                blockStates.putAll(RadialMirror.findBlockStates(player, coordinate, blockState1, itemStack, itemStacks));
-
+                blockStates.putAll(Mirror.findBlockStates(player, coordinate, blockState1));
+                blockStates.putAll(RadialMirror.findBlockStates(player, coordinate, blockState1));
             }
-
             //Adjust blockstates for torches and ladders etc to place on a valid side
             //TODO optimize findCoordinates (done twice now)
             //TODO fix mirror
@@ -109,7 +101,6 @@ public class BuildModifierHandler {
 //                        (float) hitVec.x, (float) hitVec.y, (float) hitVec.z, itemStacks.get(i).getMetadata(), player, EnumHand.MAIN_HAND));
 //            }
         }
-
         return blockStates;
     }
 

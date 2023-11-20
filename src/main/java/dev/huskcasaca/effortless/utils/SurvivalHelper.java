@@ -27,36 +27,39 @@ public class SurvivalHelper {
     //Used for all placing of blocks in this mod.
     //Checks if area is loaded, if player has the right permissions, if existing block can be replaced (drops it if so) and consumes an item from the stack.
     //Based on ItemBlock#onItemUse
-    public static boolean placeBlock(Level level, Player player, BlockPos pos, BlockState blockState,
-                                     ItemStack origstack, Direction facing, Vec3 hitVec, boolean skipPlaceCheck,
-                                     boolean skipCollisionCheck, boolean playSound) {
+    public static boolean placeBlock(Level level, Player player, BlockPos pos, BlockState blockState, ItemStack origstack) {
         if (!level.isLoaded(pos)) return false;
         ItemStack itemstack = origstack;
 
-        if (blockState.isAir() || itemstack.isEmpty()) {
-            dropBlock(level, player, pos);
-            level.removeBlock(pos, false);
-            return true;
+        Block block;
+        if (!player.isCreative()) {
+            // Make sure that given itemStack provides the needed item
+            if (blockState.isAir() || itemstack.isEmpty()) {
+                dropBlock(level, player, pos);
+                level.removeBlock(pos, false);
+                return true;
+            }
+
+            //Randomizer bag, other proxy item synergy
+            //Preliminary compatibility code for other items that hold blocks
+            if (CompatHelper.isItemBlockProxy(itemstack))
+                itemstack = CompatHelper.getItemBlockByState(itemstack, blockState);
+
+            if (!(itemstack.getItem() instanceof BlockItem))
+                return false;
+            block = ((BlockItem) itemstack.getItem()).getBlock();
+            itemstack.shrink(1);
+        }
+        else {
+            block = blockState.getBlock();
         }
 
-        //Randomizer bag, other proxy item synergy
-        //Preliminary compatibility code for other items that hold blocks
-        if (CompatHelper.isItemBlockProxy(itemstack))
-            itemstack = CompatHelper.getItemBlockByState(itemstack, blockState);
-
-        if (!(itemstack.getItem() instanceof BlockItem))
-            return false;
-        Block block = ((BlockItem) itemstack.getItem()).getBlock();
-
-
         //More manual with ItemBlock#placeBlockAt
-        if (canPlace(level, player, pos, blockState /*, itemstack, skipCollisionCheck, facing.getOpposite()*/)) {
+        if (canPlace(level, player, pos, blockState)) {
             //Drop existing block
             dropBlock(level, player, pos);
 
             //TryPlace sets block with offset and reduces itemstack count in creative, so we copy only parts of it
-//            BlockItemUseContext blockItemUseContext = new BlockItemUseContext(level, player, itemstack, pos, facing, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z);
-//            EnumActionResult result = ((ItemBlock) itemstack.getItem()).tryPlace(blockItemUseContext);
             if (!level.setBlock(pos, blockState, 3)) return false;
             BlockItem.updateCustomBlockEntityTag(level, player, pos, itemstack); //Actually BlockItem::onBlockPlaced but that is protected
             block.setPlacedBy(level, pos, blockState, player, itemstack);
@@ -68,45 +71,9 @@ public class SurvivalHelper {
                         1
                 );
             }
-
-            BlockState afterState = level.getBlockState(pos);
-
-            if (playSound) {
-                SoundType soundtype = afterState.getBlock().getSoundType(afterState);
-                level.playSound(null, pos, soundtype.getPlaceSound(), SoundSource.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
-            }
-
-            if (!player.isCreative() && Block.byItem(itemstack.getItem()) == block) {
-                itemstack.shrink(1);
-            }
-
             return true;
         }
         return false;
-
-        //Using ItemBlock#onItemUse
-//        EnumActionResult result;
-//        PlayerInteractEvent.RightClickBlock event = ForgeHooks.onRightClickBlock(player, EnumHand.MAIN_HAND, pos, facing, net.minecraftforge.common.ForgeHooks.rayTraceEyeHitVec(player, ReachHelper.getPlacementReach(player)));
-//        if (true)
-//        {
-//            int i = itemstack.getMetadata();
-//            int j = itemstack.getCount();
-//            if (event.getUseItem() != net.minecraftforge.fml.common.eventhandler.Event.Result.DENY) {
-//                EnumActionResult enumactionresult = itemstack.getItem().onItemUse(player, level, pos, EnumHand.MAIN_HAND, facing, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z);
-//                itemstack.setItemDamage(i);
-//                itemstack.setCount(j);
-//                return enumactionresult == EnumActionResult.SUCCESS;
-//            } else return false;
-//        }
-//        else
-//        {
-//            ItemStack copyForUse = itemstack.copy();
-//            if (event.getUseItem() != net.minecraftforge.fml.common.eventhandler.Event.Result.DENY)
-//                result = itemstack.getItem().onItemUse(player, level, pos, EnumHand.MAIN_HAND, facing, (float) hitVec.x, (float) hitVec.y, (float) hitVec.z);
-//            if (itemstack.isEmpty()) net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(player, copyForUse, EnumHand.MAIN_HAND);
-//            return false;
-//        }
-
     }
 
     public static boolean useBlock(Level level, Player player, BlockPos pos, BlockState blockState) {

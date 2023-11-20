@@ -5,9 +5,7 @@ import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.Container;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.SlabBlock;
@@ -63,7 +61,7 @@ public class Mirror implements Modifier {
         coordinates.add(newBlockPos);
     }
 
-    public static Map<BlockPos, BlockState> findBlockStates(Player player, BlockPos startPos, BlockState blockState, ItemStack itemStack, List<ItemStack> itemStacks) {
+    public static Map<BlockPos, BlockState> findBlockStates(Player player, BlockPos startPos, BlockState blockState) {
         var blockStates = new LinkedHashMap<BlockPos, BlockState>();
 
         //find mirrorsettings for the player
@@ -79,16 +77,16 @@ public class Mirror implements Modifier {
 //		}
 
         if (mirrorSettings.mirrorX)
-            blockStateMirrorX(player, mirrorSettings, startPos, blockState, bagInventory, itemStack, InteractionHand.MAIN_HAND, blockStates, itemStacks);
+            blockStateMirrorX(mirrorSettings, startPos, blockState, blockStates);
         if (mirrorSettings.mirrorY)
-            blockStateMirrorY(player, mirrorSettings, startPos, blockState, bagInventory, itemStack, InteractionHand.MAIN_HAND, blockStates, itemStacks);
+            blockStateMirrorY(mirrorSettings, startPos, blockState, blockStates);
         if (mirrorSettings.mirrorZ)
-            blockStateMirrorZ(player, mirrorSettings, startPos, blockState, bagInventory, itemStack, InteractionHand.MAIN_HAND, blockStates, itemStacks);
+            blockStateMirrorZ(mirrorSettings, startPos, blockState, blockStates);
 
         return blockStates;
     }
 
-    private static void blockStateMirrorX(Player player, MirrorSettings mirrorSettings, BlockPos oldBlockPos, BlockState oldBlockState, Container bagInventory, ItemStack itemStack, InteractionHand hand, Map<BlockPos, BlockState> blockStates, List<ItemStack> itemStacks) {
+    private static void blockStateMirrorX(MirrorSettings mirrorSettings, BlockPos oldBlockPos, BlockState oldBlockState, Map<BlockPos, BlockState> blockStates) {
         //find mirror position
         double x = mirrorSettings.position.x + (mirrorSettings.position.x - oldBlockPos.getX() - 0.5);
         BlockPos newBlockPos = new BlockPos((int)x, oldBlockPos.getY(), oldBlockPos.getZ());
@@ -104,15 +102,14 @@ public class Mirror implements Modifier {
 
         //Store blockstate and itemstack
         blockStates.put(newBlockPos, newBlockState);
-        itemStacks.add(itemStack);
 
         if (mirrorSettings.mirrorY)
-            blockStateMirrorY(player, mirrorSettings, newBlockPos, newBlockState, bagInventory, itemStack, hand, blockStates, itemStacks);
+            blockStateMirrorY(mirrorSettings, newBlockPos, newBlockState, blockStates);
         if (mirrorSettings.mirrorZ)
-            blockStateMirrorZ(player, mirrorSettings, newBlockPos, newBlockState, bagInventory, itemStack, hand, blockStates, itemStacks);
+            blockStateMirrorZ(mirrorSettings, newBlockPos, newBlockState, blockStates);
     }
 
-    private static void blockStateMirrorY(Player player, MirrorSettings mirrorSettings, BlockPos oldBlockPos, BlockState oldBlockState, Container bagInventory, ItemStack itemStack, InteractionHand hand, Map<BlockPos, BlockState> blockStates, List<ItemStack> itemStacks) {
+    private static void blockStateMirrorY(MirrorSettings mirrorSettings, BlockPos oldBlockPos, BlockState oldBlockState, Map<BlockPos, BlockState> blockStates) {
         //find mirror position
         double y = mirrorSettings.position.y + (mirrorSettings.position.y - oldBlockPos.getY() - 0.5);
         BlockPos newBlockPos = new BlockPos(oldBlockPos.getX(), (int)y, oldBlockPos.getZ());
@@ -128,13 +125,12 @@ public class Mirror implements Modifier {
 
         //Store blockstate and itemstack
         blockStates.put(newBlockPos, newBlockState);
-        itemStacks.add(itemStack);
 
         if (mirrorSettings.mirrorZ)
-            blockStateMirrorZ(player, mirrorSettings, newBlockPos, newBlockState, bagInventory, itemStack, hand, blockStates, itemStacks);
+            blockStateMirrorZ(mirrorSettings, newBlockPos, newBlockState, blockStates);
     }
 
-    private static void blockStateMirrorZ(Player player, MirrorSettings mirrorSettings, BlockPos oldBlockPos, BlockState oldBlockState, Container bagInventory, ItemStack itemStack, InteractionHand hand, Map<BlockPos, BlockState> blockStates, List<ItemStack> itemStacks) {
+    private static void blockStateMirrorZ(MirrorSettings mirrorSettings, BlockPos oldBlockPos, BlockState oldBlockState, Map<BlockPos, BlockState> blockStates) {
         //find mirror position
         double z = mirrorSettings.position.z + (mirrorSettings.position.z - oldBlockPos.getZ() - 0.5);
         BlockPos newBlockPos = new BlockPos(oldBlockPos.getX(), oldBlockPos.getY(), (int)z);
@@ -150,7 +146,6 @@ public class Mirror implements Modifier {
 
         //Store blockstate and itemstack
         blockStates.put(newBlockPos, newBlockState);
-        itemStacks.add(itemStack);
     }
 
     public static boolean isEnabled(MirrorSettings mirrorSettings, BlockPos startPos) {

@@ -10,7 +10,6 @@ public record BlockSet(
         List<BlockPos> coordinates,
         List<BlockState> previousBlockStates,
         List<BlockState> newBlockStates,
-        Vec3 hitVec,
         BlockPos firstPos,
         BlockPos secondPos
 ) {

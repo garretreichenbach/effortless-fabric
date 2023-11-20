@@ -48,7 +48,6 @@ public class BlockPreviewRenderer {
     private final List<Preview> currentPlacing = new ArrayList<>();
     private List<BlockPos> previousCoordinates;
     private List<BlockState> previousBlockStates;
-    private List<ItemStack> previousItemStacks;
     private BlockPos previousFirstPos;
     private BlockPos previousSecondPos;
     private int soundTime = 0;
@@ -63,7 +62,7 @@ public class BlockPreviewRenderer {
     }
 
     //Whether to draw any block previews or outlines
-    public static boolean doRenderBlockPreviews(Player player, BlockPos startPos) {
+    public static boolean doRenderBlockPreviews(Player player) {
         return ConfigManager.getGlobalPreviewConfig().isAlwaysShowBlockPreview() || (BuildModeHelper.getBuildMode(player) != BuildMode.DISABLE);
     }
 
@@ -295,7 +294,7 @@ public class BlockPreviewRenderer {
 
         //Dont render if in normal mode and modifiers are disabled
         //Unless alwaysShowBlockPreview is true in config
-        if (!doRenderBlockPreviews(player, startPos)) {
+        if (!doRenderBlockPreviews(player)) {
             clearActionBarMessage(player);
             return;
         }
@@ -340,7 +339,6 @@ public class BlockPreviewRenderer {
         hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
 
         //Get blockstates
-        var itemStacks = new ArrayList<ItemStack>();
         var blockStates = new ArrayList<BlockState>();
         if (breaking) {
             //Find blockstate of world
@@ -348,7 +346,7 @@ public class BlockPreviewRenderer {
                 blockStates.add(player.level().getBlockState(coordinate));
             }
         } else {
-            blockStates.addAll(BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide, itemStacks).values());
+            blockStates.addAll(BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide).values());
         }
 
 
@@ -358,7 +356,6 @@ public class BlockPreviewRenderer {
             previousCoordinates = newCoordinates;
             //remember the rest for placed blocks
             previousBlockStates = blockStates;
-            previousItemStacks = itemStacks;
             previousFirstPos = firstPos;
             previousSecondPos = secondPos;
 
@@ -438,13 +435,13 @@ public class BlockPreviewRenderer {
     }
 
     public void onBlocksPlaced() {
-        onBlocksPlaced(previousCoordinates, previousItemStacks, previousBlockStates, previousFirstPos, previousSecondPos);
+        onBlocksPlaced(previousCoordinates, previousBlockStates, previousFirstPos, previousSecondPos);
     }
 
-    public void onBlocksPlaced(List<BlockPos> coordinates, List<ItemStack> itemStacks, List<BlockState> blockStates, BlockPos firstPos, BlockPos secondPos) {
+    public void onBlocksPlaced(List<BlockPos> coordinates, List<BlockState> blockStates, BlockPos firstPos, BlockPos secondPos) {
         var player = minecraft.player;
 
-        if (!doRenderBlockPreviews(player, firstPos)) {
+        if (!doRenderBlockPreviews(player)) {
             return;
         }
         if (coordinates != null && blockStates != null && !coordinates.isEmpty() && blockStates.size() == coordinates.size() && coordinates.size() > 1/*  && coordinates.size() < PreviewConfig.shaderThresholdRounded() */) {
@@ -453,14 +450,14 @@ public class BlockPreviewRenderer {
     }
 
     public void onBlocksBroken() {
-        onBlocksBroken(previousCoordinates, previousItemStacks, previousBlockStates, previousFirstPos, previousSecondPos);
+        onBlocksBroken(previousCoordinates, previousBlockStates, previousFirstPos, previousSecondPos);
     }
 
-    public void onBlocksBroken(List<BlockPos> coordinates, List<ItemStack> itemStacks, List<BlockState> blockStates,
+    public void onBlocksBroken(List<BlockPos> coordinates, List<BlockState> blockStates,
                                BlockPos firstPos, BlockPos secondPos) {
         var player = minecraft.player;
 
-        if (doRenderBlockPreviews(player, firstPos)) {
+        if (doRenderBlockPreviews(player)) {
             return;
         }
         if (coordinates != null && blockStates != null && !coordinates.isEmpty() && blockStates.size() == coordinates.size() && coordinates.size() > 1/*  && coordinates.size() < PreviewConfig.shaderThresholdRounded() */) {

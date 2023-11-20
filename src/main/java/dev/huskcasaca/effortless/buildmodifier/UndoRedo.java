@@ -100,13 +100,12 @@ public class UndoRedo {
         List<BlockPos> coordinates = blockSet.coordinates();
         List<BlockState> previousBlockStates = blockSet.previousBlockStates();
         List<BlockState> newBlockStates = blockSet.newBlockStates();
-        Vec3 hitVec = blockSet.hitVec();
 
         //Find up to date itemstacks in player inventory
         List<ItemStack> itemStacks = findItemStacksInInventory(player, previousBlockStates);
 
         if (player.level().isClientSide) {
-            BlockPreviewRenderer.getInstance().onBlocksBroken(coordinates, itemStacks, newBlockStates, blockSet.secondPos(), blockSet.firstPos());
+            BlockPreviewRenderer.getInstance().onBlocksBroken(coordinates, newBlockStates, blockSet.secondPos(), blockSet.firstPos());
         } else {
             //break all those blocks, reset to what they were
             for (int i = 0; i < coordinates.size(); i++) {
@@ -137,7 +136,7 @@ public class UndoRedo {
                     }
                     if (itemStack.isEmpty()) SurvivalHelper.breakBlock(player.level(), player, coordinate, true);
                     //if previousBlockState is air, placeBlock will set it to air
-                    SurvivalHelper.placeBlock(player.level(), player, coordinate, previousBlockState, itemStack, Direction.UP, hitVec, true, false, false);
+                    SurvivalHelper.placeBlock(player.level(), player, coordinate, previousBlockState, itemStack);
                 }
             }
         }
@@ -165,13 +164,12 @@ public class UndoRedo {
         List<BlockPos> coordinates = blockSet.coordinates();
         List<BlockState> previousBlockStates = blockSet.previousBlockStates();
         List<BlockState> newBlockStates = blockSet.newBlockStates();
-        Vec3 hitVec = blockSet.hitVec();
 
         //Find up to date itemstacks in player inventory
         List<ItemStack> itemStacks = findItemStacksInInventory(player, newBlockStates);
 
         if (player.level().isClientSide) {
-            BlockPreviewRenderer.getInstance().onBlocksPlaced(coordinates, itemStacks, newBlockStates, blockSet.firstPos(), blockSet.secondPos());
+            BlockPreviewRenderer.getInstance().onBlocksPlaced(coordinates, newBlockStates, blockSet.firstPos(), blockSet.secondPos());
         } else {
             //place blocks
             for (int i = 0; i < coordinates.size(); i++) {
@@ -200,7 +198,7 @@ public class UndoRedo {
                         }
                     }
                     if (itemStack.isEmpty()) SurvivalHelper.breakBlock(player.level(), player, coordinate, true);
-                    SurvivalHelper.placeBlock(player.level(), player, coordinate, newBlockState, itemStack, Direction.UP, hitVec, true, false, false);
+                    SurvivalHelper.placeBlock(player.level(), player, coordinate, newBlockState, itemStack);
                 }
             }
         }

@@ -1,23 +1,18 @@
 package dev.huskcasaca.effortless.building;
 
-import dev.huskcasaca.effortless.Effortless;
-import dev.huskcasaca.effortless.buildmode.BuildMode;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
-import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
 import dev.huskcasaca.effortless.buildmodifier.BlockSet;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHandler;
-import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import dev.huskcasaca.effortless.buildmodifier.UndoRedo;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerBreakBlockPacket;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerPlaceBlockPacket;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.utils.InventoryHelper;
 import dev.huskcasaca.effortless.utils.SurvivalHelper;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -105,7 +100,7 @@ public class BuildHandler {
         // only used to adjust speed of the "Placed"/"Broken" animation of the PreviewRenderer.
         var secondPos = coordinates.get(coordinates.size() - 1);
         var hitVec = new Vec3(0.5, 0.5, 0.5);
-        UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, hitVec, firstPos, secondPos));
+        UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
         // Action completed.
         currentlyBreaking.remove(player);
     }
@@ -146,8 +141,7 @@ public class BuildHandler {
 
         //find modCoordinates and blockstates
         var modCoordinates = BuildModifierHandler.findCoordinates(player, coordinates);
-        var itemStacks = new ArrayList<ItemStack>();
-        var blockStates = BuildModifierHandler.findBlockStates(player, coordinates, hitVec, hitSide, itemStacks);
+        var blockStates = BuildModifierHandler.findBlockStates(player, coordinates, hitVec, hitSide);
 
         //Limit number of blocks you can place
         int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
@@ -166,49 +160,33 @@ public class BuildHandler {
             previousBlockStates.add(level.getBlockState(coordinate));
         }
 
-        // TODO: what is the actual difference between clientside and serverside code path? Possible to unify?
-        if (level.isClientSide) {
-            BlockPreviewRenderer.getInstance().onBlocksPlaced();
-            var blockLeft = new HashMap<Block, Integer>();
+        if (level.isClientSide) BlockPreviewRenderer.getInstance().onBlocksPlaced();
 
-            // Place blocks and shrink itemstack.
-            for (int i = 0; i < modCoordinates.size(); i++) {
-                var blockPos = modCoordinates.get(i);
-                var blockState = blockStates.get(blockPos);
-                var itemStack = itemStacks.get(i);
-                if (!blockLeft.containsKey(blockState.getBlock())) {
-                    blockLeft.put(blockState.getBlock(), InventoryHelper.findTotalBlocksInInventory(player, blockState.getBlock()));
-                }
-                var count = blockLeft.getOrDefault(blockState.getBlock(), 0);
-                if (player.isCreative() || count > 0) {
-                    if (level.isLoaded(blockPos)) {
-                        SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack.copy(), hitSide, hitVec, false, false, false);
-                        if (!player.isCreative()) blockLeft.put(blockState.getBlock(), count - 1);
-                    }
-                }
-            }
-            //find actual new blockstates for undo
-            for (var coordinate : modCoordinates) newBlockStates.add(level.getBlockState(coordinate));
-        } else {
-            //place blocks
-            for (int i = 0; i < modCoordinates.size(); i++) {
-                var blockPos = modCoordinates.get(i);
-                var blockState = blockStates.get(blockPos);
-                var itemStack = itemStacks.get(i);
+        //place blocks
+        for (int i = 0; i < modCoordinates.size(); i++) {
+            var blockPos = modCoordinates.get(i);
+            var blockState = blockStates.get(blockPos);
+            var itemStack = ItemStack.EMPTY;
 
-                if (level.isLoaded(blockPos)) {
-                    //check itemstack empty
-                    if (itemStack.isEmpty()) {
-                        //try to find new stack, otherwise continue
+            if (level.isLoaded(blockPos)) {
+                // check if itemstack can provide currently desired block; if not, find another one in players inventory.
+                if (!player.isCreative()) {
+                    if (
+                            itemStack.isEmpty()
+                                    || !(itemStack.getItem() instanceof BlockItem)
+                                    || ((BlockItem) itemStack.getItem()).getBlock().equals(blockState.getBlock())
+                    ) {
+                        // TODO: prefer main hand / off hand slots
                         itemStack = InventoryHelper.findItemStackInInventory(player, blockState.getBlock());
+                        // not found, do NOT place the block.
                         if (itemStack.isEmpty()) continue;
                     }
-                    SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack, hitSide, hitVec, false, false, false);
                 }
+                SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack);
             }
-            //find actual new blockstates for undo
-            for (var coordinate : modCoordinates) newBlockStates.add(level.getBlockState(coordinate));
         }
+        //find actual new blockstates for undo
+        for (var coordinate : modCoordinates) newBlockStates.add(level.getBlockState(coordinate));
 
         //If all new blockstates are air then no use in adding it, no block was actually placed
         //Can happen when e.g. placing one block in yourself
@@ -216,7 +194,7 @@ public class BuildHandler {
             //add to undo stack
             var firstPos = coordinates.get(0);
             var secondPos = coordinates.get(coordinates.size() - 1);
-            UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, hitVec, firstPos, secondPos));
+            UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
         }
         // Action completed
         currentlyBreaking.remove(player);

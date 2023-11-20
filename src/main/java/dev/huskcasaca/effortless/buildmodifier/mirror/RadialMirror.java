@@ -5,7 +5,6 @@ import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
@@ -48,7 +47,7 @@ public class RadialMirror implements Modifier {
         return coordinates;
     }
 
-    public static Map<BlockPos, BlockState> findBlockStates(Player player, BlockPos startPos, BlockState blockState, ItemStack itemStack, List<ItemStack> itemStacks) {
+    public static Map<BlockPos, BlockState> findBlockStates(Player player, BlockPos startPos, BlockState blockState) {
         var blockStates = new LinkedHashMap<BlockPos, BlockState>();
 
         //find radial mirror settings for the player that placed the block
@@ -101,7 +100,6 @@ public class RadialMirror implements Modifier {
             //rotate
             newBlockState = rotateBlockState(player, startPos, relNewVec, newBlockState, radialMirrorSettings.alternate && i % 2 == 1);
             blockStates.putIfAbsent(newBlockPos, newBlockState);
-            itemStacks.add(itemStack);
         }
 
         return blockStates;

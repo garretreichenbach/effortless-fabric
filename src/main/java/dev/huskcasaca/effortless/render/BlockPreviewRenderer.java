@@ -265,14 +265,11 @@ public class BlockPreviewRenderer {
         ItemStack mainhand = player.getMainHandItem();
         boolean toolInHand = !(!mainhand.isEmpty() && CompatHelper.isItemBlockProxy(mainhand));
 
-        BlockPos startPos = null;
-        Direction hitSide = null;
-        Vec3 hitVec = null;
-
+        BlockHitResult blockLookingAt = null;
         //Checking for null is necessary! Even in vanilla when looking down ladders it is occasionally null (instead of Type MISS)
         if (lookingAt != null && lookingAt.getType() == HitResult.Type.BLOCK) {
-            BlockHitResult blockLookingAt = (BlockHitResult) lookingAt;
-            startPos = blockLookingAt.getBlockPos();
+            blockLookingAt = (BlockHitResult) lookingAt;
+            var startPos = blockLookingAt.getBlockPos();
 
             //Check if tool (or none) in hand
             //TODO 1.13 replaceable
@@ -281,83 +278,37 @@ public class BlockPreviewRenderer {
             if (!BuildModifierHelper.isQuickReplace(player) && !toolInHand && !replaceable && !becomesDoubleSlab) {
                 startPos = startPos.relative(blockLookingAt.getDirection());
             }
-
             //Get under tall grass and other replaceable blocks
             // TODO: 20/9/22 remove
             if (BuildModifierHelper.isQuickReplace(player) && !toolInHand && replaceable) {
                 startPos = startPos.below();
             }
-
-            hitSide = blockLookingAt.getDirection();
-            hitVec = blockLookingAt.getLocation();
+            blockLookingAt = blockLookingAt.withPosition(startPos);
         }
 
         //Dont render if in normal mode and modifiers are disabled
         //Unless alwaysShowBlockPreview is true in config
-        if (!doRenderBlockPreviews(player)) {
+        if (!doRenderBlockPreviews(player) || blockLookingAt==null) {
             clearActionBarMessage(player);
             return;
         }
+        var previewData = BuildHandler.currentPreview(player, blockLookingAt);
 
-        //Keep blockstate the same for every block in the buildmode
-        //So dont rotate blocks when in the middle of placing wall etc.
-        if (BuildHandler.isActive(player)) {
-            if (BuildHandler.getHitSide(player) != null) hitSide = BuildHandler.getHitSide(player);
-            if (BuildHandler.getHitVec(player) != null) hitVec = BuildHandler.getHitVec(player);
-        }
-
-        if (hitSide == null) {
-            clearActionBarMessage(player);
-            return;
-        }
-
-        //Should be red?
+        // Todo: pass the whole BlockSet around instead of splitting everything up.
+        var newCoordinates = previewData.coordinates();
+        var blockStates = previewData.newBlockStates();
+        var firstPos = previewData.firstPos();
+        var secondPos = previewData.secondPos();
         var breaking = BuildHandler.isCurrentlyBreaking(player);
-
-        //get coordinates
-        var skipRaytrace = breaking || BuildModifierHelper.isQuickReplace(player);
-        var startCoordinates = BuildModeHandler.findCoordinates(player, startPos, skipRaytrace);
-
-        //Remember first and last point for the shader
-        var firstPos = BlockPos.ZERO;
-        var secondPos = BlockPos.ZERO;
-        if (!startCoordinates.isEmpty()) {
-            firstPos = startCoordinates.get(0);
-            secondPos = startCoordinates.get(startCoordinates.size() - 1);
-        }
-
-        //Limit number of blocks you can place
-        int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
-        if (startCoordinates.size() > limit) {
-            startCoordinates = startCoordinates.subList(0, limit);
-        }
-
-        var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
-
-//                sortOnDistanceToPlayer(newCoordinates, player);
-
-        hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
-
-        //Get blockstates
-        var blockStates = new ArrayList<BlockState>();
-        if (breaking) {
-            //Find blockstate of world
-            for (var coordinate : newCoordinates) {
-                blockStates.add(player.level().getBlockState(coordinate));
-            }
-        } else {
-            blockStates.addAll(BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide).values());
-        }
-
 
         //Check if they are different from previous
         //TODO fix triggering when moving player
         if (!BuildModifierHandler.compareCoordinates(previousCoordinates, newCoordinates)) {
             previousCoordinates = newCoordinates;
             //remember the rest for placed blocks
-            previousBlockStates = blockStates;
-            previousFirstPos = firstPos;
-            previousSecondPos = secondPos;
+            previousBlockStates = previewData.newBlockStates();
+            previousFirstPos = previewData.firstPos();
+            previousSecondPos = previewData.secondPos();
 
             //if so, renew randomness of randomizer bag
 //					AbstractRandomizerBagItem.renewRandomness();
@@ -398,7 +349,8 @@ public class BlockPreviewRenderer {
         int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
         int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
         int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
-        for (var pos : startCoordinates) {
+        // FIXME: previously, non-Modifier'd coordinates were used here
+        for (var pos : newCoordinates) {
             if (pos.getX() < minX) minX = pos.getX();
             if (pos.getX() > maxX) maxX = pos.getX();
             if (pos.getY() < minY) minY = pos.getY();

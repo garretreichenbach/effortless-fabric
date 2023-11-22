@@ -3,18 +3,22 @@ package dev.huskcasaca.effortless.building;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
 import dev.huskcasaca.effortless.buildmodifier.BlockSet;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHandler;
+import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import dev.huskcasaca.effortless.buildmodifier.UndoRedo;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerBreakBlockPacket;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerPlaceBlockPacket;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.utils.InventoryHelper;
 import dev.huskcasaca.effortless.utils.SurvivalHelper;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
@@ -99,7 +103,6 @@ public class BuildHandler {
         // Does not take modifier-added positions into account. Not critical, because this is
         // only used to adjust speed of the "Placed"/"Broken" animation of the PreviewRenderer.
         var secondPos = coordinates.get(coordinates.size() - 1);
-        var hitVec = new Vec3(0.5, 0.5, 0.5);
         UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
         // Action completed.
         currentlyBreaking.remove(player);
@@ -198,6 +201,57 @@ public class BuildHandler {
         }
         // Action completed
         currentlyBreaking.remove(player);
+    }
+
+    /**
+     * Gets the blocks to be shown as preview, using the current Hit information.
+     * Result block states don't take into account whether player has enough inventory and whether blocks are unbreakable.
+     * @param player current player
+     * @param hitResult Where the player is looking at
+     * @return
+     */
+    public static BlockSet currentPreview(Player player, BlockHitResult hitResult) {
+        //Keep blockstate the same for every block in the buildmode
+        //So dont rotate blocks when in the middle of placing wall etc.
+        var hitSide = hitResult.getDirection();
+        var hitVec = hitResult.getLocation();
+        if (isActive(player)) {
+            if (getHitSide(player) != null) hitSide = BuildHandler.getHitSide(player);
+            if (getHitVec(player) != null) hitVec = BuildHandler.getHitVec(player);
+        }
+
+        //Should be red?
+        var breaking = BuildHandler.isCurrentlyBreaking(player);
+
+        //get coordinates
+        var skipRaytrace = breaking || BuildModifierHelper.isQuickReplace(player);
+        var startCoordinates = BuildModeHandler.findCoordinates(player, hitResult.getBlockPos(), skipRaytrace);
+
+        //Remember first and last point for the shader
+        var firstPos = startCoordinates.isEmpty() ? BlockPos.ZERO: startCoordinates.get(0);
+        var secondPos = startCoordinates.isEmpty() ? BlockPos.ZERO: startCoordinates.get(startCoordinates.size()-1);
+
+        var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
+
+        hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
+
+        //Get blockstates
+        List<BlockState> blockStates = new ArrayList<>();
+        if (breaking) {
+            //Find blockstate of world
+            for (var coordinate : newCoordinates) {
+                blockStates.add(player.level().getBlockState(coordinate));
+            }
+        } else {
+            blockStates.addAll(BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide).values());
+        }
+        //Limit number of blocks you can place
+        int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
+        if (newCoordinates.size() > limit) {
+            blockStates = blockStates.subList(0, limit);
+            newCoordinates = newCoordinates.subList(0, limit);
+        }
+        return new BlockSet(newCoordinates, null, blockStates, firstPos, secondPos);
     }
 
     /**

@@ -15,7 +15,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -205,10 +204,12 @@ public class BuildHandler {
 
     /**
      * Gets the blocks to be shown as preview, using the current Hit information.
-     * Result block states don't take into account whether player has enough inventory and whether blocks are unbreakable.
+     * Blocks are already filtered by canSetBlock - repeat check will always be True.
+     * Result block states don't take into account whether player has enough inventory.
+     * If breaking, the blocks to be broken are in previousBlockStates, and all new block states are AIR blocks.
      * @param player current player
      * @param hitResult Where the player is looking at
-     * @return
+     * @return BlockSet
      */
     public static BlockSet currentPreview(Player player, BlockHitResult hitResult) {
         //Keep blockstate the same for every block in the buildmode
@@ -232,26 +233,48 @@ public class BuildHandler {
         var secondPos = startCoordinates.isEmpty() ? BlockPos.ZERO: startCoordinates.get(startCoordinates.size()-1);
 
         var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
+        int N = newCoordinates.size();
 
         hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
 
-        //Get blockstates
-        List<BlockState> blockStates = new ArrayList<>();
-        if (breaking) {
-            //Find blockstate of world
-            for (var coordinate : newCoordinates) {
-                blockStates.add(player.level().getBlockState(coordinate));
+        //Get blockstates (old and new)
+        List<BlockState> previousBlockStates = newCoordinates.stream().map(pos -> player.level().getBlockState(pos)).toList();
+        // Filter: remove if previousBlockState equals newBlockState or if cannot place.
+        var isReplace = (breaking || BuildModifierHelper.isReplace(player));
+        var filter = new ArrayList<>(newCoordinates.stream().map(pos -> SurvivalHelper.canSetBlock(player, pos, isReplace)).toList());
+
+        Map<BlockPos, BlockState> blockStateMap;
+        if (!breaking) {
+            blockStateMap = BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide);
+            // do not place at position i if not in blockStateMap or if already the same block.
+            // FIXME: does not consider actual state, e.g. orientation of stairs.
+            for (int i=0; i<N; i++) {
+                var blockState = blockStateMap.get(newCoordinates.get(i));
+                if (blockState==null || previousBlockStates.get(i).getBlock() == blockState.getBlock()) filter.set(i, false);
             }
-        } else {
-            blockStates.addAll(BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide).values());
         }
+        else {
+            blockStateMap = null;
+            // do not "break" if already air.
+            for (int i=0; i<N; i++)
+                if (previousBlockStates.get(i).getBlock() == Blocks.AIR) filter.set(i, false);
+        }
+
+        var filtCoordinates = new ArrayList<BlockPos>(N);
+        var filtPreviousBlockStates = new ArrayList<BlockState>(N);
+        var filtBlockStates = new ArrayList<BlockState>(N);
+
         //Limit number of blocks you can place
         int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
-        if (newCoordinates.size() > limit) {
-            blockStates = blockStates.subList(0, limit);
-            newCoordinates = newCoordinates.subList(0, limit);
+        for (int i=0; i<N; i++) {
+            if (filter.get(i)) {
+                filtCoordinates.add(newCoordinates.get(i));
+                filtPreviousBlockStates.add(previousBlockStates.get(i));
+                filtBlockStates.add(breaking ? Blocks.AIR.defaultBlockState() : blockStateMap.get(newCoordinates.get(i)));
+            }
+            if (--limit <= 0) break;
         }
-        return new BlockSet(newCoordinates, null, blockStates, firstPos, secondPos);
+        return new BlockSet(filtCoordinates, filtPreviousBlockStates, filtBlockStates, firstPos, secondPos);
     }
 
     /**

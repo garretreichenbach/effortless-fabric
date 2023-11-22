@@ -295,11 +295,11 @@ public class BlockPreviewRenderer {
         var previewData = BuildHandler.currentPreview(player, blockLookingAt);
 
         // Todo: pass the whole BlockSet around instead of splitting everything up.
+        var breaking = BuildHandler.isCurrentlyBreaking(player);
         var newCoordinates = previewData.coordinates();
-        var blockStates = previewData.newBlockStates();
+        var blockStates = breaking ? previewData.previousBlockStates(): previewData.newBlockStates();
         var firstPos = previewData.firstPos();
         var secondPos = previewData.secondPos();
-        var breaking = BuildHandler.isCurrentlyBreaking(player);
 
         //Check if they are different from previous
         //TODO fix triggering when moving player

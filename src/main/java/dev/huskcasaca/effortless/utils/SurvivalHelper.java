@@ -55,7 +55,7 @@ public class SurvivalHelper {
         }
 
         //More manual with ItemBlock#placeBlockAt
-        if (canPlace(level, player, pos, blockState)) {
+        if (canPlace(player, pos)) {
             //Drop existing block
             dropBlock(level, player, pos);
 
@@ -90,7 +90,7 @@ public class SurvivalHelper {
         if (!(itemStack.getItem() instanceof BlockItem)) return false;
         Block block = ((BlockItem) itemStack.getItem()).getBlock();
 
-        if (!canPlace(level, player, pos, blockState /*, itemStack, skipCollisionCheck, facing.getOpposite()*/)) {
+        if (!canPlace(player, pos)) {
             return false;
         }
         dropBlock(level, player, pos);
@@ -120,7 +120,7 @@ public class SurvivalHelper {
 
     public static boolean breakBlock(Level level, Player player, BlockPos blockPos, boolean skipChecks) {
 //        if (!level.isLoaded(blockPos) && !level.isEmptyBlock(blockPos)) return false;
-        if (!skipChecks && !canBreak(level, player, blockPos)) return false;
+        if (!skipChecks && !canBreak(player, blockPos)) return false;
         //Drop existing block
         if (level.isClientSide()) {
             Minecraft.getInstance().gameMode.destroyBlock(blockPos);
@@ -150,23 +150,24 @@ public class SurvivalHelper {
         return true;
     }
 
-
-    public static boolean canPlace(Level level, Player player, BlockPos pos, BlockState newBlockState) {
-        if (!level.mayInteract(player, pos)) return false;
-        if (!player.getAbilities().mayBuild) return false;
-        if (BuildModifierHelper.isReplace(player)) {
-            if (player.isCreative()) return true;
-            return !level.getBlockState(pos).is(BlockTags.FEATURES_CANNOT_REPLACE); // fluid
-        }
-        return level.getBlockState(pos).canBeReplaced(); // fluid
+    public static boolean canPlace(Player player, BlockPos pos) {
+        return canSetBlock(player, pos, BuildModifierHelper.isReplace(player));
     }
-
     //Can break using held tool? (or in creative)
-    public static boolean canBreak(Level level, Player player, BlockPos pos) {
+    public static boolean canBreak(Player player, BlockPos pos) {
+        return canSetBlock(player, pos, true);
+    }
+    public static boolean canSetBlock(Player player, BlockPos pos, boolean isReplace) {
+        var level = player.level();
         if (!level.mayInteract(player, pos)) return false;
         if (!player.getAbilities().mayBuild) return false;
-        if (player.isCreative()) return true;
-        return !level.getBlockState(pos).is(BlockTags.FEATURES_CANNOT_REPLACE);
+        if (isReplace) {
+            if (player.isCreative()) return true;
+            return !level.getBlockState(pos).is(BlockTags.FEATURES_CANNOT_REPLACE); // bedrock or similar
+        }
+        else {
+            return level.getBlockState(pos).canBeReplaced(); // air or fluid
+        }
     }
 
     public static boolean doesBecomeDoubleSlab(Player player, BlockPos pos, Direction facing) {

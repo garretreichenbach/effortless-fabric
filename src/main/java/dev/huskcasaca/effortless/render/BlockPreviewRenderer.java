@@ -99,7 +99,7 @@ public class BlockPreviewRenderer {
             if (coordinate == null || blockState == null) {
                 throw new IllegalArgumentException("Coordinate or blockstate is null");
             }
-            result.add(new BlockPosState(coordinate, blockState, SurvivalHelper.canPlace(player.level(), player, coordinate, blockState), SurvivalHelper.canBreak(player.level(), player, coordinate)));
+            result.add(new BlockPosState(coordinate, blockState, SurvivalHelper.canPlace(player, coordinate), SurvivalHelper.canBreak(player, coordinate)));
         }
         return result;
     }
@@ -127,11 +127,11 @@ public class BlockPreviewRenderer {
             var canPlace = blockPosState.canPlace;
 
             if (breaking) {
-                if (canBreak != null && canBreak || SurvivalHelper.canBreak(player.level(), player, blockPos)) {
+                if (canBreak != null && canBreak || SurvivalHelper.canBreak(player, blockPos)) {
                     RenderUtils.renderBlockDissolveShader(poseStack, multiBufferSource, dispatcher, blockPos, blockState, dissolve, firstPos, secondPos, true);
                 }
             } else {
-                if (canPlace != null && canPlace || SurvivalHelper.canPlace(player.level(), player, blockPosState.coordinate, blockState)) {
+                if (canPlace != null && canPlace || SurvivalHelper.canPlace(player, blockPosState.coordinate)) {
                     if (player.isCreative()) {
                         RenderUtils.renderBlockDissolveShader(poseStack, multiBufferSource, dispatcher, blockPos, blockState, dissolve, firstPos, secondPos, false);
                         continue;
@@ -163,11 +163,11 @@ public class BlockPreviewRenderer {
             var canPlace = blockPosState.canPlace;
 
             if (breaking) {
-                if (canBreak != null && canBreak || SurvivalHelper.canBreak(player.level(), player, blockPos)) {
+                if (canBreak != null && canBreak || SurvivalHelper.canBreak(player, blockPos)) {
                     RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, dispatcher, blockPos, blockState, dissolve, firstPos, secondPos, true);
                 }
             } else {
-                if (canPlace != null && canPlace || SurvivalHelper.canPlace(player.level(), player, blockPosState.coordinate, blockState)) {
+                if (canPlace != null && canPlace || SurvivalHelper.canPlace(player, blockPosState.coordinate)) {
                     if (player.isCreative()) {
                         RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, dispatcher, blockPos, blockState, dissolve, firstPos, secondPos, false);
                         continue;
@@ -200,14 +200,14 @@ public class BlockPreviewRenderer {
             var blockState = placeDatum.blockState;
 
             if (breaking) {
-                var canBreak = SurvivalHelper.canBreak(player.level(), player, blockPos);
+                var canBreak = SurvivalHelper.canBreak(player, blockPos);
                 if (canBreak) {
                     valid.put(blockState.getBlock(), valid.getOrDefault(blockState.getBlock(), 0) + 1);
                     total.put(blockState.getBlock(), total.getOrDefault(blockState.getBlock(), 0) + 1);
                 }
 
             } else {
-                var canPlace = SurvivalHelper.canPlace(player.level(), player, placeDatum.coordinate, blockState);
+                var canPlace = SurvivalHelper.canPlace(player, placeDatum.coordinate);
                 if (canPlace) {
                     if (player.isCreative()) {
                         valid.put(blockState.getBlock(), valid.getOrDefault(blockState.getBlock(), 0) + 1);

@@ -1,10 +1,8 @@
-import io.github.huskcasaca.gradlecurseforgeplugin.*
 import java.util.*
 
 @Suppress("DSL_SCOPE_VIOLATION")
 plugins {
     alias(libs.plugins.loom)
-    id("io.github.huskcasaca.gradle-curseforge-plugin") version "1.0.0-alpha"
 }
 
 version = "1.6.5"
@@ -58,37 +56,5 @@ tasks {
     }
     remapSourcesJar {
         archiveClassifier.set(libs.versions.minecraft.get() + "-source")
-    }
-}
-
-publishing {
-    val properties = Properties().apply {
-        file("local.properties").apply {
-            if (isFile) {
-                inputStream().use { reader -> load(reader) }
-            } else {
-                println("$name is not found")
-                return@publishing
-            }
-        }
-    }
-    repositories {
-        curseForge {
-            token.set(properties.getProperty("curseforge.apikey"))
-        }
-    }
-    publications {
-        create<CurseForgePublication>("Effortless") {
-
-            id.set(properties.getProperty("curseforge.id").toInt())
-
-            artifact(tasks.remapJar) {
-                releaseType = ReleaseType.RELEASE // The release type (required)
-                changelog = Changelog("Changelog...", ChangelogType.TEXT) // The changelog (required)
-                loader = LoaderType.FABRIC
-                gameVersion = MinecraftVersion.VERSION_1_20_1
-                javaVersion = JavaVersion.VERSION_17
-            }
-        }
     }
 }

@@ -22,4 +22,10 @@ public abstract class MultipleClickBuildable implements Buildable {
         rightClickTableServer.put(player.getUUID(), 0);
         firstPosTable.put(player.getUUID(), BlockPos.ZERO);
     }
+
+    @Override
+    public boolean isInProgress(Player player) {
+        var rightClickTable = player.level().isClientSide ? rightClickTableClient : rightClickTableServer;
+        return rightClickTable.get(player.getUUID()) != 0;
+    }
 }

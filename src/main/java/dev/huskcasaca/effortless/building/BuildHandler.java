@@ -1,6 +1,9 @@
 package dev.huskcasaca.effortless.building;
 
+import dev.huskcasaca.effortless.Effortless;
+import dev.huskcasaca.effortless.buildmode.BuildMode;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
+import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
 import dev.huskcasaca.effortless.buildmodifier.BlockSet;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHandler;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
@@ -51,26 +54,38 @@ public class BuildHandler {
     public static void onBlockBroken(Player player, ServerboundPlayerBreakBlockPacket packet) {
         var level = player.level();
         var currentlyBreaking = level.isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        // if currently in opposite mode, abort
+        var startPos = packet.blockHit() ? packet.blockPos() : null;
+
+        // === if currently in opposite mode, abort ===
         if (currentlyBreaking.get(player) != null && !currentlyBreaking.get(player)) {
             initialize(player);
             return;
         }
-        if (!ReachHelper.isCanBreakFar(player)) return;
+        // === Check if player reach does not exceed startpos ===
+        int maxReach = ReachHelper.getMaxReachDistance(player);
+        if (
+                startPos != null
+                        && BuildModeHelper.getBuildMode(player) != BuildMode.DISABLE
+                        && player.blockPosition().distSqr(startPos) > maxReach * maxReach
+        ) {
+            Effortless.log(player, "Placement exceeds your reach.");
+            return;
+        }
 
-        var startPos = packet.blockHit() ? packet.blockPos() : null;
-        //If first click
+        // === check if construction is finished ===
         if (currentlyBreaking.get(player) == null) {
             //If startpos is null, dont do anything
             if (startPos == null) return;
         }
 
-        var coordinates = BuildModeHandler.getBreakCoordinates(player, startPos);
-        if (coordinates.isEmpty()) {
+        if (!BuildModeHandler.onUseBreak(player, startPos)) {
             // another click needed - wait for next click
-            currentlyBreaking.put(player, true);
+            if (BuildModeHandler.isInProgress(player)) currentlyBreaking.put(player, true);
             return;
         }
+        // === go ahead and execute breaking ===
+        var coordinates = BuildModeHandler.findCoordinates(player, startPos, true);
+
         //Let buildmodifiers break blocks
         var modCoordinates = BuildModifierHandler.findCoordinates(player, coordinates);
         //remember previous blockstates for undo
@@ -104,33 +119,43 @@ public class BuildHandler {
         var secondPos = coordinates.get(coordinates.size() - 1);
         UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
         // Action completed.
-        currentlyBreaking.remove(player);
+        initialize(player);
     }
 
     public static void onBlockPlaced(Player player, ServerboundPlayerPlaceBlockPacket packet) {
         var level = player.level();
-        //Check if not in the middle of breaking
         var currentlyBreaking = level.isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        // if currently in opposite mode, abort
+        var startPos = packet.blockHit() ? packet.blockPos(): null;
+
+        // === if currently in opposite mode, abort ===
         if (currentlyBreaking.get(player) != null && currentlyBreaking.get(player)) {
             initialize(player);
             return;
         }
-
-        var coordinates = BuildModeHandler.getPlaceCoordinates(
-                player, packet.blockHit()? packet.blockPos(): null, packet.hitSide()
-        );
-
-        // invalid click
-        if (coordinates == null) return;
-        if (coordinates.isEmpty()) {
-            // another click needed - wait for next click
-            currentlyBreaking.put(player, false);
-            // Remember first hit result, might be required for block state
-            hitSideTable.put(player, packet.hitSide());
-            hitVecTable.put(player, packet.hitVec());
+        // === Check if player reach does not exceed startpos ===
+        int maxReach = ReachHelper.getMaxReachDistance(player);
+        if (
+                startPos != null
+                && BuildModeHelper.getBuildMode(player) != BuildMode.DISABLE
+                && player.blockPosition().distSqr(startPos) > maxReach * maxReach
+        ) {
+            Effortless.log(player, "Placement exceeds your reach.");
             return;
         }
+        // === check if construction is finished ===
+        if (!BuildModeHandler.onUsePlace(player, startPos, packet.hitSide())) {
+            // action might not have started (invalid startpos)
+            if (BuildModeHandler.isInProgress(player)) {
+                currentlyBreaking.put(player, false);
+                // Remember first hit result, might be required for block state
+                hitSideTable.put(player, packet.hitSide());
+                hitVecTable.put(player, packet.hitVec());
+            }
+            return;
+        }
+
+        // === go ahead and execute placement ===
+        var coordinates = BuildModeHandler.findCoordinates(player, startPos, BuildModifierHelper.isQuickReplace(player));
 
         // Use Hit side + vec of first click if MultipleClickBuildable.
         var hitSide = hitSideTable.get(player);
@@ -199,7 +224,7 @@ public class BuildHandler {
             UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
         }
         // Action completed
-        currentlyBreaking.remove(player);
+        initialize(player);
     }
 
     /**
@@ -212,6 +237,7 @@ public class BuildHandler {
      * @return BlockSet
      */
     public static BlockSet currentPreview(Player player, BlockHitResult hitResult) {
+        var level = player.level();
         //Keep blockstate the same for every block in the buildmode
         //So dont rotate blocks when in the middle of placing wall etc.
         var hitSide = hitResult.getDirection();
@@ -255,9 +281,17 @@ public class BuildHandler {
         }
         else {
             blockStateMap = null;
-            // do not "break" if already air.
+            // do not "break" things that are already air.
             for (int i=0; i<N; i++)
                 if (previousBlockStates.get(i).getBlock() == Blocks.AIR) filter.set(i, false);
+            //If the player is going to inst-break grass or a plant, make sure to only break other inst-breakable things
+            if (
+                !player.isCreative() && previousBlockStates.get(0).getDestroySpeed(level, newCoordinates.get(0)) == 0f
+            ) {
+                for (int i=0; i<N; i++)
+                    if (previousBlockStates.get(i).getDestroySpeed(level, newCoordinates.get(i)) > 0f)
+                        filter.set(i, false);
+            };
         }
 
         var filtCoordinates = new ArrayList<BlockPos>(N);

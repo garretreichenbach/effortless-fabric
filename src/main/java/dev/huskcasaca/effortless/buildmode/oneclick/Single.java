@@ -17,9 +17,11 @@ public class Single extends OneClickBuildable {
     }
 
     @Override
-    public List<BlockPos> onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
-        if (blockPos == null) return Collections.emptyList();
-        return getFinalBlocks(player, blockPos.getX(), blockPos.getY(), blockPos.getZ());
+    public boolean isInProgress(Player player) { return false; }
+
+    @Override
+    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
+        return (blockPos != null);
     }
 
     @Override

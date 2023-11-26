@@ -12,32 +12,23 @@ import java.util.List;
 public abstract class TwoClickBuildable extends MultipleClickBuildable {
 
     @Override
-    public List<BlockPos> onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
-        List<BlockPos> list = new ArrayList<>();
-
+    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
         var rightClickTable = player.level().isClientSide ? rightClickTableClient : rightClickTableServer;
         int rightClickNr = rightClickTable.get(player.getUUID());
-
         rightClickNr++;
         rightClickTable.put(player.getUUID(), rightClickNr);
-
         if (rightClickNr == 1) {
             //If clicking in air, reset and try again
             if (blockPos == null) {
                 rightClickTable.put(player.getUUID(), 0);
-                return list;
+                return false;
             }
-
             //First click, remember starting position
             firstPosTable.put(player.getUUID(), blockPos);
-            //Keep list empty, dont place any blocks yet
+            return false;
         } else {
-            //Second click, place blocks
-            list = findCoordinates(player, blockPos, skipRaytrace);
-            rightClickTable.put(player.getUUID(), 0);
+            return true;
         }
-
-        return list;
     }
 
     @Override

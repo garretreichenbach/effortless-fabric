@@ -9,12 +9,28 @@ import java.util.List;
 
 public interface Buildable {
 
-    //Fired when a player selects a buildmode and when it needs to initializeMode
+    /**
+     * Perform initialization after build mode change and/or after finishing construction.
+     * @param player the Player
+     */
     void initialize(Player player);
 
-    //Fired when a block would be placed
-    //Return a list of coordinates where you want to place blocks
-    List<BlockPos> onUse(Player player, BlockPos blockPos, boolean skipRaytrace);
+    /**
+     * Tells us if a construction is ongoing for player
+     * @param player
+     * @return true if in the middle of a build operation
+     */
+    boolean isInProgress(Player player);
+
+    /**
+     * Called to register click at the given position.
+     * Result tells whether construction is finished (coordinates final).
+     * @param player the Player
+     * @param blockPos blockPos that was clicked
+     * @param skipRaytrace
+     * @return true if construction is finished, false if not
+     */
+    boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace);
 
     //Fired continuously for visualization purposes
     List<BlockPos> findCoordinates(Player player, BlockPos blockPos, boolean skipRaytrace);

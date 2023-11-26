@@ -190,43 +190,30 @@ public abstract class ThreeClickBuildable extends MultipleClickBuildable {
     }
 
     @Override
-    public List<BlockPos> onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
-        List<BlockPos> list = new ArrayList<>();
-
+    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
         var rightClickTable = player.level().isClientSide ? rightClickTableClient : rightClickTableServer;
         int rightClickNr = rightClickTable.get(player.getUUID());
         rightClickNr++;
         rightClickTable.put(player.getUUID(), rightClickNr);
-
         if (rightClickNr == 1) {
-            //If clicking in air, reset and try again
-            if (blockPos == null) {
+            //If clicking in air, reset and try again; otherwise, remember start position
+            if (blockPos == null)
                 rightClickTable.put(player.getUUID(), 0);
-                return list;
-            }
-
-            //First click, remember starting position
-            firstPosTable.put(player.getUUID(), blockPos);
-            //Keep list empty, dont place any blocks yet
+            else
+                firstPosTable.put(player.getUUID(), blockPos);
+            return false;
         } else if (rightClickNr == 2) {
             //Second click, find other floor point
             var firstPos = firstPosTable.get(player.getUUID());
             var secondPos = findSecondPos(player, firstPos, true);
-
-            if (secondPos == null) {
+            if (secondPos == null)
                 rightClickTable.put(player.getUUID(), 1);
-                return list;
-            }
-
-            secondPosTable.put(player.getUUID(), secondPos);
-
+            else
+                secondPosTable.put(player.getUUID(), secondPos);
+            return false;
         } else {
-            //Third click, place diagonal wall with height
-            list = findCoordinates(player, blockPos, skipRaytrace);
-            rightClickTable.put(player.getUUID(), 0);
+            return true;
         }
-
-        return list;
     }
 
     @Override

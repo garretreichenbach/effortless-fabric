@@ -33,7 +33,7 @@ public class BuildModeHandler {
      * @param hitSide
      * @return list of block positions; empty list if needing another click; null if invalid click.
      */
-    public static List<BlockPos> getPlaceCoordinates(Player player, BlockPos blockPos, Direction hitSide) {
+    public static boolean onUsePlace(Player player, BlockPos blockPos, Direction hitSide) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
         var modeSettings = BuildModeHelper.getModeSettings(player);
         var buildMode = modeSettings.buildMode();
@@ -53,33 +53,26 @@ public class BuildModeHandler {
                 startPos = startPos.below();
             }
 
-            //Check if player reach does not exceed startpos
-            int maxReach = ReachHelper.getMaxReachDistance(player);
-            if (buildMode != BuildMode.DISABLE && player.blockPosition().distSqr(startPos) > maxReach * maxReach) {
-                Effortless.log(player, "Placement exceeds your reach.");
-                return null;
-            }
         }
 
         //Even when no starting block is found, call buildmode instance
         //We might want to place things in the air
         var skipRaytrace = modifierSettings.enableQuickReplace();
-        return buildMode.getInstance().onUse(player, startPos, skipRaytrace);
+        var builder = buildMode.getInstance();
+        return builder.onUse(player, startPos, skipRaytrace);
     }
 
     /**
-     * Given the startPos, tell us which blocks will be broken.
-     * Stateful: Might only return sensible data after multiple clicks (i.e. calls).
-     * @param player
-     * @param startPos
-     * @return list of block positions; empty list if needing another click; null if invalid click.
+     * Register click at startPos and tell us whether construction is finished.
+     * @param player Player
+     * @param startPos position that was clicked
+     * @return true if construction is finished.
      */
-    public static List<BlockPos> getBreakCoordinates(Player player, BlockPos startPos) {
+    public static boolean onUseBreak(Player player, BlockPos startPos) {
         var modeSettings = BuildModeHelper.getModeSettings(player);
-
         //Get coordinates
-        var buildMode = modeSettings.buildMode();
-        return buildMode.getInstance().onUse(player, startPos, true);
+        var builder = modeSettings.buildMode().getInstance();
+        return builder.onUse(player, startPos, true);
     }
 
     // get current BlockPos set in intermediate state (tracking mouse)
@@ -94,6 +87,10 @@ public class BuildModeHandler {
 
     public static void initializeMode(Player player) {
         BuildModeHelper.getModeSettings(player).buildMode().getInstance().initialize(player);
+    }
+
+    public static boolean isInProgress(Player player) {
+        return BuildModeHelper.getModeSettings(player).buildMode().getInstance().isInProgress(player);
     }
 
     //Find coordinates on a line bound by a plane

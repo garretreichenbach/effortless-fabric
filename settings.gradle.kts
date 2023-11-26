@@ -5,5 +5,3 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-
-includeBuild("gradle-curseforge-publish")

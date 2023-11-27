@@ -538,7 +538,11 @@ public class RadialMenuScreen extends Screen {
                 performedActionUsingMouse = true;
             }
             switch (action) {
-                case UNDO, REDO, SETTINGS, REPLACE -> onClose();
+                case UNDO, REDO, SETTINGS, REPLACE:
+                    // unconditionally stop onClose from calling us again
+                    performedActionUsingMouse = true;
+                    onClose();
+                    break;
             }
         }
     }

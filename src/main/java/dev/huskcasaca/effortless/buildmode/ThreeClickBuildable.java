@@ -186,7 +186,6 @@ public abstract class ThreeClickBuildable extends MultipleClickBuildable {
     @Override
     public void initialize(Player player) {
         super.initialize(player);
-        secondPosTable.put(player.getUUID(), BlockPos.ZERO);
     }
 
     @Override

@@ -13,4 +13,13 @@ public record BlockSet(
         BlockPos firstPos,
         BlockPos secondPos
 ) {
+    public BlockSet withNewBlockStates(List<BlockState> newBlockStates) {
+        return new BlockSet(
+            coordinates,
+            previousBlockStates,
+            newBlockStates, // replaced
+            firstPos,
+            secondPos
+        );
+    }
 }

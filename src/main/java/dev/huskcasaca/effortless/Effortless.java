@@ -115,7 +115,6 @@ public class Effortless implements ModInitializer {
         );
     }
     public static void handlePacket(ServerboundPlayerBreakBlockPacket packet, ServerPlayer player, PacketSender sender) {
-        Effortless.log("handlePacket: ServerboundPlayerBreakBlockPacket");
         BuildHandler.onBlockBroken(player, packet);
     }
 

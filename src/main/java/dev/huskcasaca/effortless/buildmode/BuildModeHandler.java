@@ -1,15 +1,10 @@
 package dev.huskcasaca.effortless.buildmode;
 
-import dev.huskcasaca.effortless.Effortless;
-import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
-import dev.huskcasaca.effortless.buildmodifier.BuildModifierHandler;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
-import dev.huskcasaca.effortless.building.ReachHelper;
-import dev.huskcasaca.effortless.utils.SurvivalHelper;
+import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
 import dev.huskcasaca.effortless.network.Packets;
 import dev.huskcasaca.effortless.network.protocol.player.ClientboundPlayerBuildModePacket;
-import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerBreakBlockPacket;
-import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerPlaceBlockPacket;
+import dev.huskcasaca.effortless.utils.SurvivalHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,60 +14,21 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
 import java.util.List;
 
 public class BuildModeHandler {
 
     /**
-     * Given the blockpos and raytrace hit result, Tell us where blocks should be placed in current mode.
-     * Stateful: Might only return sensible data after multiple clicks (i.e. calls).
-     * @param player
-     * @param blockPos
-     * @param hitSide
-     * @return list of block positions; empty list if needing another click; null if invalid click.
+     * Given the blockpos and raytrace hit result, remember click and tell us whether construction is finished.
+     * @param player the Player
+     * @param blockPos position that was clicked (as per packet)
+     * @return True if construction is now finished.
      */
-    public static boolean onUsePlace(Player player, BlockPos blockPos, Direction hitSide) {
+    public static boolean onUse(Player player, BlockPos blockPos, boolean breaking) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
-        var modeSettings = BuildModeHelper.getModeSettings(player);
-        var buildMode = modeSettings.buildMode();
-        BlockPos startPos = null;
-        // Find actual start pos
-        if (blockPos != null) {
-            startPos = blockPos;
-            //Offset in direction of hitSide if not quickreplace and not replaceable
-            boolean replaceable = player.level().getBlockState(startPos).canBeReplaced();
-            boolean becomesDoubleSlab = SurvivalHelper.doesBecomeDoubleSlab(player, startPos, hitSide);
-            if (!modifierSettings.enableQuickReplace() && !replaceable && !becomesDoubleSlab) {
-                startPos = startPos.relative(hitSide);
-            }
-
-            //Get under tall grass and other replaceable blocks
-            if (modifierSettings.enableQuickReplace() && replaceable) {
-                startPos = startPos.below();
-            }
-
-        }
-
-        //Even when no starting block is found, call buildmode instance
-        //We might want to place things in the air
-        var skipRaytrace = modifierSettings.enableQuickReplace();
-        var builder = buildMode.getInstance();
-        return builder.onUse(player, startPos, skipRaytrace);
-    }
-
-    /**
-     * Register click at startPos and tell us whether construction is finished.
-     * @param player Player
-     * @param startPos position that was clicked
-     * @return true if construction is finished.
-     */
-    public static boolean onUseBreak(Player player, BlockPos startPos) {
-        var modeSettings = BuildModeHelper.getModeSettings(player);
-        //Get coordinates
-        var builder = modeSettings.buildMode().getInstance();
-        return builder.onUse(player, startPos, true);
+        var buildMode = BuildModeHelper.getModeSettings(player).buildMode().getInstance();
+        var skipRaytrace = modifierSettings.enableQuickReplace() || breaking;
+        return buildMode.onUse(player, blockPos, skipRaytrace);
     }
 
     // get current BlockPos set in intermediate state (tracking mouse)

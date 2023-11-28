@@ -20,7 +20,6 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
@@ -50,18 +49,24 @@ public class BuildHandler {
 
         BuildModeHandler.initializeMode(player);
     }
-
     public static void onBlockBroken(Player player, ServerboundPlayerBreakBlockPacket packet) {
+        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), true);
+    }
+
+    public static void onBlockPlaced(Player player, ServerboundPlayerPlaceBlockPacket packet) {
+        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), false);
+    }
+
+    public static void onBlockSet(Player player, BlockPos startPos, Direction hitSide, Vec3 hitVec, boolean breaking) {
         var level = player.level();
         var currentlyBreaking = level.isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        var startPos = packet.blockHit() ? packet.blockPos() : null;
 
         // === if currently in opposite mode, abort ===
-        if (currentlyBreaking.get(player) != null && !currentlyBreaking.get(player)) {
+        if (currentlyBreaking.get(player) != null && (currentlyBreaking.get(player) != breaking)) {
             initialize(player);
             return;
         }
-        // === Check if player reach does not exceed startpos ===
+        // === Check if startpos is within player's mod-configured reach distance ===
         int maxReach = ReachHelper.getMaxReachDistance(player);
         if (
                 startPos != null
@@ -72,131 +77,47 @@ public class BuildHandler {
             return;
         }
 
+        currentlyBreaking.put(player, breaking);
+
         // === check if construction is finished ===
-        if (currentlyBreaking.get(player) == null) {
-            //If startpos is null, dont do anything
-            if (startPos == null) return;
-        }
-
-        if (!BuildModeHandler.onUseBreak(player, startPos)) {
-            // another click needed - wait for next click
-            if (BuildModeHandler.isInProgress(player)) currentlyBreaking.put(player, true);
-            return;
-        }
-        // === go ahead and execute breaking ===
-        var coordinates = BuildModeHandler.findCoordinates(player, startPos, true);
-
-        //Let buildmodifiers break blocks
-        var modCoordinates = BuildModifierHandler.findCoordinates(player, coordinates);
-        //remember previous blockstates for undo
-        List<BlockState> previousBlockStates = new ArrayList<>(modCoordinates.size());
-        List<BlockState> newBlockStates = new ArrayList<>(modCoordinates.size());
-        for (var coordinate : modCoordinates) {
-            previousBlockStates.add(level.getBlockState(coordinate));
-        }
-        if (level.isClientSide) BlockPreviewRenderer.getInstance().onBlocksBroken();
-
-        //If the player is going to inst-break grass or a plant, make sure to only break other inst-breakable things
-        boolean onlyInstaBreaking = !player.isCreative() &&
-                level.getBlockState(modCoordinates.get(0)).getDestroySpeed(level, modCoordinates.get(0)) == 0f;
-
-        //break all those blocks
-        for (int i = 0; i < modCoordinates.size(); i++) {
-            var coordinate = modCoordinates.get(i);
-            if (level.isLoaded(coordinate) && !level.isEmptyBlock(coordinate)) {
-                if (!onlyInstaBreaking || level.getBlockState(coordinate).getDestroySpeed(level, coordinate) == 0f) {
-                    SurvivalHelper.breakBlock(level, player, coordinate, false);
-                }
-            }
-        }
-        //find actual new blockstates for undo
-        for (var coordinate : modCoordinates) newBlockStates.add(level.getBlockState(coordinate));
-
-        //add to undo stack
-        var firstPos = modCoordinates.get(0);
-        // Does not take modifier-added positions into account. Not critical, because this is
-        // only used to adjust speed of the "Placed"/"Broken" animation of the PreviewRenderer.
-        var secondPos = coordinates.get(coordinates.size() - 1);
-        UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
-        // Action completed.
-        initialize(player);
-    }
-
-    public static void onBlockPlaced(Player player, ServerboundPlayerPlaceBlockPacket packet) {
-        var level = player.level();
-        var currentlyBreaking = level.isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        var startPos = packet.blockHit() ? packet.blockPos(): null;
-
-        // === if currently in opposite mode, abort ===
-        if (currentlyBreaking.get(player) != null && currentlyBreaking.get(player)) {
-            initialize(player);
-            return;
-        }
-        // === Check if player reach does not exceed startpos ===
-        int maxReach = ReachHelper.getMaxReachDistance(player);
-        if (
-                startPos != null
-                && BuildModeHelper.getBuildMode(player) != BuildMode.DISABLE
-                && player.blockPosition().distSqr(startPos) > maxReach * maxReach
-        ) {
-            Effortless.log(player, "Placement exceeds your reach.");
-            return;
-        }
-        // === check if construction is finished ===
-        if (!BuildModeHandler.onUsePlace(player, startPos, packet.hitSide())) {
+        startPos = actualPos(player, startPos, hitSide, breaking);
+        if (!BuildModeHandler.onUse(player, startPos, breaking)) {
             // action might not have started (invalid startpos)
             if (BuildModeHandler.isInProgress(player)) {
-                currentlyBreaking.put(player, false);
                 // Remember first hit result, might be required for block state
-                hitSideTable.put(player, packet.hitSide());
-                hitVecTable.put(player, packet.hitVec());
+                if (hitSideTable.get(player) == null) {
+                    hitSideTable.put(player, hitSide);
+                    hitVecTable.put(player, hitVec);
+                }
             }
             return;
         }
-
-        // === go ahead and execute placement ===
-        var coordinates = BuildModeHandler.findCoordinates(player, startPos, BuildModifierHelper.isQuickReplace(player));
-
-        // Use Hit side + vec of first click if MultipleClickBuildable.
-        var hitSide = hitSideTable.get(player);
-        if (hitSide == null) hitSide = packet.hitSide();
-        var hitVec = hitVecTable.get(player);
-        if (hitVec == null) hitVec = packet.hitVec();
-
-        //Format hitvec to 0.x
-        hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
-
-        //find modCoordinates and blockstates
-        var modCoordinates = BuildModifierHandler.findCoordinates(player, coordinates);
-        var blockStates = BuildModifierHandler.findBlockStates(player, coordinates, hitVec, hitSide);
-
-        //Limit number of blocks you can place
-        int limit = ReachHelper.getMaxBlockPlaceAtOnce(player);
-        if (modCoordinates.size() > limit) {
-            for (var pos: modCoordinates.subList(limit, modCoordinates.size())) blockStates.remove(pos);
-            modCoordinates = modCoordinates.subList(0, limit);
-            // blockStates is a map, the now-superfluous items will just sit there unused.
-        }
-        // Check that blockStates matches modCoordinates.
-        if (modCoordinates.size() != blockStates.size()) return;
-
-        //remember previous blockstates for undo
-        var previousBlockStates = new ArrayList<BlockState>(modCoordinates.size());
-        var newBlockStates = new ArrayList<BlockState>(modCoordinates.size());
-        for (var coordinate : modCoordinates) {
-            previousBlockStates.add(level.getBlockState(coordinate));
+        var blockSet = findBlockSet(player, startPos, hitSide, hitVec);
+        //Effortless.log(String.format("Setting %d blocks", blockSet.coordinates().size()));
+        if (level.isClientSide) {
+            if (breaking)
+                BlockPreviewRenderer.getInstance().onBlocksBroken();
+            else
+                BlockPreviewRenderer.getInstance().onBlocksPlaced();
+            initialize(player);
+            // Return here to only set blocks on server side - avoids Ghost-block problems,
+            // but induces some lag if connected to a remote server.
+            //return;
         }
 
-        if (level.isClientSide) BlockPreviewRenderer.getInstance().onBlocksPlaced();
-
-        //place blocks
-        for (int i = 0; i < modCoordinates.size(); i++) {
-            var blockPos = modCoordinates.get(i);
-            var blockState = blockStates.get(blockPos);
-            var itemStack = ItemStack.EMPTY;
-
-            if (level.isLoaded(blockPos)) {
-                // check if itemstack can provide currently desired block; if not, find another one in players inventory.
+        //break/place all those blocks
+        var coordinates = blockSet.coordinates();
+        // current inventory stack to deduct items from
+        var itemStack = ItemStack.EMPTY;
+        for (int i = 0; i < coordinates.size(); i++) {
+            var blockPos = coordinates.get(i);
+            if (!level.isLoaded(blockPos)) continue;
+            var blockState = blockSet.newBlockStates().get(i);
+            if (blockState.isAir()) {
+                SurvivalHelper.breakBlock(level, player, blockPos, false);
+            }
+            else {
+                // Make sure that the player has matching item for target block
                 if (!player.isCreative()) {
                     if (
                             itemStack.isEmpty()
@@ -213,46 +134,76 @@ public class BuildHandler {
             }
         }
         //find actual new blockstates for undo
-        for (var coordinate : modCoordinates) newBlockStates.add(level.getBlockState(coordinate));
+        List<BlockState> actualNewBlockStates = coordinates.stream().map(pos -> level.getBlockState(pos)).toList();
 
-        //If all new blockstates are air then no use in adding it, no block was actually placed
-        //Can happen when e.g. placing one block in yourself
-        if (Collections.frequency(newBlockStates, Blocks.AIR.defaultBlockState()) != newBlockStates.size()) {
-            //add to undo stack
-            var firstPos = coordinates.get(0);
-            var secondPos = coordinates.get(coordinates.size() - 1);
-            UndoRedo.addUndo(player, new BlockSet(modCoordinates, previousBlockStates, newBlockStates, firstPos, secondPos));
-        }
-        // Action completed
+        UndoRedo.addUndo(player, blockSet.withNewBlockStates(actualNewBlockStates));
+        // Action completed.
         initialize(player);
     }
 
     /**
-     * Gets the blocks to be shown as preview, using the current Hit information.
+     * Given the block targeted by the player, return actual corner point position for placement.
+     * * If placing, we will place NEXT to the clicked block (face), unless:
+     *  a) Quickreplace is on
+     *  b) its something breakable like grass
+     *  c) (TODO): placing creates a double slab
+     *  If Quickreplace is on AND something breakable was targeted, returns the block BELOW.
+     *  * If breaking, we will always target the clicked block.
+     * @param player Player
+     * @param blockPos Block that was clicked
+     * @param hitSide Face of the block that was clicked
+     * @param breaking Whether player intends to break or place.
+     * @return actual block position to use.
+     */
+    public static BlockPos actualPos(Player player, BlockPos blockPos, Direction hitSide, boolean breaking) {
+        var modifierSettings = BuildModifierHelper.getModifierSettings(player);
+        // When placing, find out whether we want to offset.
+        if (blockPos != null && !breaking) {
+            // Place NEXT to clicked block (in given direction), unless QuickReplace is on or block is replaceable.
+            boolean replaceable = player.level().getBlockState(blockPos).canBeReplaced();
+            // XXX: becomesDoubleSlab is currently always False
+            boolean becomesDoubleSlab = SurvivalHelper.doesBecomeDoubleSlab(player, blockPos, hitSide);
+            if (!modifierSettings.enableQuickReplace() && !replaceable && !becomesDoubleSlab) {
+                blockPos = blockPos.relative(hitSide);
+            }
+
+            //Get under tall grass and other replaceable blocks
+            if (modifierSettings.enableQuickReplace() && replaceable) {
+                blockPos = blockPos.below();
+            }
+        }
+        return blockPos;
+    }
+
+    /**
+     * Gets the blocks to be changed, using the current Hit information.
      * Blocks are already filtered by canSetBlock - repeat check will always be True.
      * Result block states don't take into account whether player has enough inventory.
      * If breaking, the blocks to be broken are in previousBlockStates, and all new block states are AIR blocks.
      * @param player current player
-     * @param hitResult Where the player is looking at
+     * @param blockPos block that was hit, maybe null
+     * @param hitSide face of block that was hit
+     * @param hitVec where the block was hit
      * @return BlockSet
      */
-    public static BlockSet currentPreview(Player player, BlockHitResult hitResult) {
+    public static BlockSet findBlockSet(Player player, BlockPos blockPos, Direction hitSide, Vec3 hitVec) {
         var level = player.level();
         //Keep blockstate the same for every block in the buildmode
         //So dont rotate blocks when in the middle of placing wall etc.
-        var hitSide = hitResult.getDirection();
-        var hitVec = hitResult.getLocation();
         if (isActive(player)) {
-            if (getHitSide(player) != null) hitSide = BuildHandler.getHitSide(player);
-            if (getHitVec(player) != null) hitVec = BuildHandler.getHitVec(player);
+            if (getHitSide(player) != null) hitSide = getHitSide(player);
+            if (getHitVec(player) != null) hitVec = getHitVec(player);
         }
+        // Don't know where to place anything - return valid but empty blockset.
+        if (hitSide==null || hitVec == null) return new BlockSet(
+                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), BlockPos.ZERO, BlockPos.ZERO
+        );
 
-        //Should be red?
-        var breaking = BuildHandler.isCurrentlyBreaking(player);
+        var breaking = isCurrentlyBreaking(player);
 
         //get coordinates
         var skipRaytrace = breaking || BuildModifierHelper.isQuickReplace(player);
-        var startCoordinates = BuildModeHandler.findCoordinates(player, hitResult.getBlockPos(), skipRaytrace);
+        var startCoordinates = BuildModeHandler.findCoordinates(player, blockPos, skipRaytrace);
 
         //Remember first and last point for the shader
         var firstPos = startCoordinates.isEmpty() ? BlockPos.ZERO: startCoordinates.get(0);

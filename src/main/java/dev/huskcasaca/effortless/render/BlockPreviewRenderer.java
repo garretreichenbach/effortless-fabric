@@ -8,6 +8,7 @@ import dev.huskcasaca.effortless.buildmode.BuildMode;
 import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
 import dev.huskcasaca.effortless.buildmode.Buildable;
+import dev.huskcasaca.effortless.buildmodifier.BlockSet;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHandler;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import dev.huskcasaca.effortless.building.ReachHelper;
@@ -265,37 +266,34 @@ public class BlockPreviewRenderer {
         ItemStack mainhand = player.getMainHandItem();
         boolean toolInHand = !(!mainhand.isEmpty() && CompatHelper.isItemBlockProxy(mainhand));
 
+        var breaking = BuildHandler.isCurrentlyBreaking(player);
+
         BlockHitResult blockLookingAt = null;
         //Checking for null is necessary! Even in vanilla when looking down ladders it is occasionally null (instead of Type MISS)
         if (lookingAt != null && lookingAt.getType() == HitResult.Type.BLOCK) {
             blockLookingAt = (BlockHitResult) lookingAt;
-            var startPos = blockLookingAt.getBlockPos();
-
-            //Check if tool (or none) in hand
-            //TODO 1.13 replaceable
-            boolean replaceable = player.level().getBlockState(startPos).canBeReplaced();
-            boolean becomesDoubleSlab = SurvivalHelper.doesBecomeDoubleSlab(player, startPos, blockLookingAt.getDirection());
-            if (!BuildModifierHelper.isQuickReplace(player) && !toolInHand && !replaceable && !becomesDoubleSlab) {
-                startPos = startPos.relative(blockLookingAt.getDirection());
-            }
-            //Get under tall grass and other replaceable blocks
-            // TODO: 20/9/22 remove
-            if (BuildModifierHelper.isQuickReplace(player) && !toolInHand && replaceable) {
-                startPos = startPos.below();
-            }
+            var startPos = BuildHandler.actualPos(
+                    player,
+                    blockLookingAt.getBlockPos(),
+                    blockLookingAt.getDirection(),
+                    breaking
+            );
             blockLookingAt = blockLookingAt.withPosition(startPos);
         }
 
         //Dont render if in normal mode and modifiers are disabled
         //Unless alwaysShowBlockPreview is true in config
-        if (!doRenderBlockPreviews(player) || blockLookingAt==null) {
+        if (!doRenderBlockPreviews(player)) {
             clearActionBarMessage(player);
             return;
         }
-        var previewData = BuildHandler.currentPreview(player, blockLookingAt);
+        BlockSet previewData;
+        if (blockLookingAt == null)
+            previewData = BuildHandler.findBlockSet(player, null, null, null);
+        else
+            previewData = BuildHandler.findBlockSet(player, blockLookingAt.getBlockPos(), blockLookingAt.getDirection(), blockLookingAt.getLocation());
 
         // Todo: pass the whole BlockSet around instead of splitting everything up.
-        var breaking = BuildHandler.isCurrentlyBreaking(player);
         var newCoordinates = previewData.coordinates();
         var blockStates = breaking ? previewData.previousBlockStates(): previewData.newBlockStates();
         var firstPos = previewData.firstPos();

@@ -1,6 +1,17 @@
 # Effortless Fabric
-[Effortless Fabric](https://www.curseforge.com/minecraft/mc-mods/effortless-fabric) is a fabric version of [Effortless Building](https://www.curseforge.com/minecraft/mc-mods/effortless-building).
-This mod implements most features from Effortless Building, but removed randomizer bag and reach upgrade items to make it a pure vanilla compat one.
+
+Effortless Fabric greatly facilitates building larger structures in minecraft, by allowing
+you to place and break blocks in geometric shapes like lines, rectangles or cubes.
+
+This is a FORK of the Effortless fabric mod maintained
+by [huskcasaca](https://github.com/huskcasaca). Purpose of the
+fork is to provide updates for recent minecraft versions, and to add some features that I
+wanted.
+
+[Effortless Fabric](https://www.curseforge.com/minecraft/mc-mods/effortless-fabric) in
+turn is a fabric port of the famous [Effortless Building](https://www.curseforge.com/minecraft/mc-mods/effortless-building) mod.
+This mod implements most features from Effortless Building, but removed randomizer bag and
+reach upgrade items to make it a pure vanilla compat one.
 
 ## Screenshots
 ### Building Menu
@@ -16,7 +27,12 @@ This mod implements most features from Effortless Building, but removed randomiz
 
 ## Building
 
-Hold ALT key to switch build modes in the radial panel. There are buttons for undo/redo, modifier settings and replace modes on the left. The options for each build mode (like a filled vs hollow wall) are on the right.
+Hold ALT key to switch build modes in the radial panel. There are buttons for undo/redo,
+modifier settings and replace modes on the left. The options for each build mode (like a
+filled vs hollow wall) are on the right.
+
+In Single mode, you can place blocks beneath your feet by looking straight downward. Thus
+you can start construction in air or water.
 
 ### Build Modes
 
@@ -39,27 +55,33 @@ Hold ALT key to switch build modes in the radial panel. There are buttons for un
 - **Array**: Copies builds and block states in a certain direction a certain number of times.
 - **Radial Mirror**: Places blocks in a circle around a certain point. The circle can be divided into slices, and each slide will copy your block placements.
 
-### Replace Modes
+### Replace Modes (Keybind: R)
 
 - **Disable**: Placing blocks does not replace any existing blocks
 - **Normal**: Placing blocks replaces the existing blocks except the first one
 - **Quick**: Placing blocks replaces the existing blocks including the first one
 
-## Todo
-* [x] Undo/Redo
-* [x] Configure screen
-* [x] Commands
-* [x] Magnet (pick up distant items)
-* [x] Rewrite attack/use logic
-* [x] Rewrite shader
-* [x] Rewrite S2C/C2S logic
-* [x] Wall blocks (torch) support
-* [ ] Performance optimize (for large amount of blocks)
-* [ ] Item randomizer
-* [ ] Makkit support
-* [ ] Tweakeroo support
+## Known issues
+
+If any of these bothers you particularly, please open a github issue (or Pull request :-))
+
+* Placing torches or other attachable items is not well-tested and most probably buggy.
+* When replacing blocks, will not replace a block of same type but with different
+  Blockstate. E.g. when placing stairs, will not "rotate" an existing stair block.
+* No "randomizer bag". Might support Shulker chests as stand-in somewhen.
+* No support for Forge, Bukkit, etc and won't add this either due to total lack of
+  knowhow.
+
+## License info
+
+This mod is licensed under GPLv3. For full text see LICENSE file.
 
 ## Changelog
+### Upcoming (Fork only)
+* Single mode: can place block in air by looking straight down
+### 1.6.5 (Fork only)
+* Fix occasional crash when closing radial menu without clicking anything
+* Fix toggle-replace-mode keybind not working
 ### 1.6.3
 * Fix action bar text covering issue
 * Fix image resource path converting issue
@@ -116,6 +138,9 @@ Hold ALT key to switch build modes in the radial panel. There are buttons for un
 * Initial release
 
 ## Credits
+
+* **[huskcasaca](https://github.com/huskcasaca)**, the author
+  of [Effortless Fabric](https://www.curseforge.com/minecraft/mc-mods/effortless-fabric)
 * **[Requioss](https://www.curseforge.com/members/requioss)**, the author of [Effortless Building](https://www.curseforge.com/minecraft/mc-mods/effortless-building) 
 
 ## License

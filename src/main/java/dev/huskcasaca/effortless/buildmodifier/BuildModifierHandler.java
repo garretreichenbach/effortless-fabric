@@ -51,35 +51,22 @@ public class BuildModifierHandler {
         return findCoordinates(player, new ArrayList<>(Collections.singletonList(blockPos)));
     }
 
-    public static Map<BlockPos, BlockState> findBlockStates(Player player, List<BlockPos> posList, Vec3 hitVec, Direction facing) {
-        var blockStates = new LinkedHashMap<BlockPos, BlockState>();
-
-        //Get itemstack - either a BlockItem or a proxy (container) that provides Items (e.g. RandomizerBag)
-        ItemStack itemStack = player.getItemInHand(InteractionHand.MAIN_HAND);
-        if (itemStack.isEmpty() || !CompatHelper.isItemBlockProxy(itemStack)) {
-            itemStack = player.getItemInHand(InteractionHand.OFF_HAND);
-        }
-        if (itemStack.isEmpty() || !CompatHelper.isItemBlockProxy(itemStack)) {
-            return Collections.emptyMap();
-        }
-
-        //Get ItemBlock stack
-        ItemStack itemBlock = ItemStack.EMPTY;
-        if (itemStack.getItem() instanceof BlockItem) itemBlock = itemStack;
-        else itemBlock = CompatHelper.getItemBlockFromStack(itemStack);
-//		AbstractRandomizerBagItem.resetRandomness();
-
-        //Add blocks in posList first
-        for (var blockPos : posList) {
-            if (!(itemStack.getItem() instanceof BlockItem)) itemBlock = CompatHelper.getItemBlockFromStack(itemStack);
-            BlockState blockState = getBlockStateFromItem(itemBlock, player, blockPos, facing, hitVec, InteractionHand.MAIN_HAND);
-            if (blockState == null) continue;
-            blockStates.put(blockPos, blockState);
-        }
-
-        for (var blockPos : posList) {
-            BlockState blockState = getBlockStateFromItem(itemBlock, player, blockPos, facing, hitVec, InteractionHand.MAIN_HAND);
-            if (blockState == null) continue;
+    /**
+     * Given the blockStates to place, returns list extended with the "modified" block
+     * states. Block states are rotated / mirrored according to what the modifier
+     * says.
+     * @param player - Player, needed to get modifier settings
+     * @param blockStates - map of blockstates
+     * @return new map of blockstates
+     */
+    public static Map<BlockPos, BlockState> findBlockStates(
+            Player player, Map<BlockPos, BlockState>blockStates
+    ) {
+        // Make a copy to modify inplace
+        blockStates = new LinkedHashMap<>(blockStates);
+        for (var entry : blockStates.entrySet()) {
+            var blockPos = entry.getKey();
+            var blockState = entry.getValue();
 
             var arrayBlockStates = Array.findBlockStates(player, blockPos, blockState);
             blockStates.putAll(arrayBlockStates);
@@ -92,14 +79,6 @@ public class BuildModifierHandler {
                 blockStates.putAll(Mirror.findBlockStates(player, coordinate, blockState1));
                 blockStates.putAll(RadialMirror.findBlockStates(player, coordinate, blockState1));
             }
-            //Adjust blockstates for torches and ladders etc to place on a valid side
-            //TODO optimize findCoordinates (done twice now)
-            //TODO fix mirror
-//            List<BlockPos> coordinates = findCoordinates(player, startPos);
-//            for (int i = 0; i < blockStates.size(); i++) {
-//                blockStates.set(i, blockStates.get(i).getBlock().getStateForPlacement(player.world, coordinates.get(i), facing,
-//                        (float) hitVec.x, (float) hitVec.y, (float) hitVec.z, itemStacks.get(i).getMetadata(), player, EnumHand.MAIN_HAND));
-//            }
         }
         return blockStates;
     }
@@ -109,19 +88,6 @@ public class BuildModifierHandler {
                 Mirror.isEnabled(modifierSettings.mirrorSettings(), startPos) ||
                 RadialMirror.isEnabled(modifierSettings.radialMirrorSettings(), startPos) ||
                 modifierSettings.enableQuickReplace();
-    }
-
-    public static BlockState getBlockStateFromItem(ItemStack itemStack, Player player, BlockPos blockPos, Direction facing, Vec3 hitVec, InteractionHand hand) {
-        var hitresult = new BlockHitResult(hitVec, facing, blockPos, false);
-
-        var item = itemStack.getItem();
-
-        if (item instanceof BlockItem) {
-            // FIXME: 23/11/22
-            return ((BlockItem) Item.byBlock(((BlockItem) item).getBlock())).getPlacementState(new BlockPlaceContext(player, hand, itemStack, hitresult));
-        } else {
-            return Block.byItem(item).getStateForPlacement(new BlockPlaceContext(new UseOnContext(player, hand, new BlockHitResult(hitVec, facing, blockPos, false))));
-        }
     }
 
     //Returns true if equal (or both null)

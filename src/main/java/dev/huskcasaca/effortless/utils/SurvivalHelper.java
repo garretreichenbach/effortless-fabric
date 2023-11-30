@@ -169,15 +169,4 @@ public class SurvivalHelper {
             return level.getBlockState(pos).canBeReplaced(); // air or fluid
         }
     }
-
-    public static boolean doesBecomeDoubleSlab(Player player, BlockPos pos, Direction facing) {
-        ItemStack itemstack = player.getItemInHand(InteractionHand.MAIN_HAND);
-        if (CompatHelper.isItemBlockProxy(itemstack))
-            itemstack = CompatHelper.getItemBlockFromStack(itemstack);
-
-        if (itemstack.isEmpty() || !(itemstack.getItem() instanceof BlockItem) || !(((BlockItem) itemstack.getItem()).getBlock() instanceof SlabBlock heldSlab))
-            return false;
-
-        return false;
-    }
 }

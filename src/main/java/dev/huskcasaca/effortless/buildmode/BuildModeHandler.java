@@ -10,11 +10,14 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class BuildModeHandler {
 
@@ -39,6 +42,27 @@ public class BuildModeHandler {
         coordinates.addAll(modeSettings.buildMode().getInstance().findCoordinates(player, startPos, skipRaytrace));
 
         return coordinates;
+    }
+
+    /**
+     * Given the coordinates previously returned by findCoordinates, tell us what block
+     * to place there. Modes are free to leave out some positions.
+     * By default, playersBlockState is placed everywhere.
+     * Modes can decide to place something different, e.g. (TODO) place a saved structure,
+     * or (TODO) adjust top/bottom placing of slabs to form a nice stair.
+     * @param posList Positions where to place
+     * @param playersBlockState associated blockstate of players held item, placed at initial conditions.
+     * @return map of position to block state.
+     */
+    public static LinkedHashMap<BlockPos, BlockState> findBlockStates(
+            List<BlockPos> posList, BlockState playersBlockState
+    ) {
+        var result = new LinkedHashMap<BlockPos, BlockState>(posList.size());
+        if (playersBlockState == null) return result;
+        for (var blockPos : posList) {
+            result.put(blockPos, playersBlockState);
+        }
+        return result;
     }
 
     public static void initializeMode(Player player) {

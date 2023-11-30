@@ -68,6 +68,8 @@ Use M key to quickly cycle between X/Z Mirror modes (centered on player's positi
 If any of these bothers you particularly, please open a github issue (or Pull request :-))
 
 * Placing torches or other attachable items is not well-tested and most probably buggy.
+* Cannot place double-slabs, and making a stair of slabs doesn't work as one would
+  probably expect.
 * When replacing blocks, will not replace a block of same type but with different
   Blockstate. E.g. when placing stairs, will not "rotate" an existing stair block.
 * No "randomizer bag". Might support Shulker chests as stand-in somewhen.
@@ -80,6 +82,9 @@ This mod is licensed under GPLv3. For full text see LICENSE file.
 
 ## Changelog
 ### Upcoming (Fork only)
+* Fix block state changing while "dragging" construction area. Blocks will now be placed
+  as they were on first click.
+* In particular this fixes that stairs could not be placed upside-down.
 * Single mode: can place block in air by looking straight down
 * Add keybind M to cycle X/Z mirror mode.
 ### 1.6.5 (Fork only)

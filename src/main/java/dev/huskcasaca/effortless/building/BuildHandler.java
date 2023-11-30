@@ -11,15 +11,20 @@ import dev.huskcasaca.effortless.buildmodifier.UndoRedo;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerBreakBlockPacket;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerPlaceBlockPacket;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
+import dev.huskcasaca.effortless.utils.CompatHelper;
 import dev.huskcasaca.effortless.utils.InventoryHelper;
 import dev.huskcasaca.effortless.utils.SurvivalHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
@@ -30,23 +35,19 @@ public class BuildHandler {
     // Entry = false -> player is currently placing, wait for next click
     // Entry = true -> player is currently breaking, wait for next click
     // no Entry for player -> no operation in progress
-    private static final Dictionary<Player, Boolean> currentlyBreakingClient = new Hashtable<>();
-    private static final Dictionary<Player, Boolean> currentlyBreakingServer = new Hashtable<>();
+    private record BuildState(boolean breaking, Direction hitSide, Vec3 hitVec, BlockState blockState) {
 
-    // Remembers the hit data of the first click, if multiple-click buildable.
-    private static final Dictionary<Player, Direction> hitSideTable = new Hashtable<>();
-    private static final Dictionary<Player, Vec3> hitVecTable = new Hashtable<>();
+    }
+    private static final Dictionary<Player, BuildState> currentStateClient = new Hashtable<>();
+    private static final Dictionary<Player, BuildState> currentStateServer = new Hashtable<>();
 
     public static void initialize(Player player) {
         //Resetting mode, so not placing or breaking
         if (player == null) {
             return;
         }
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        currentlyBreaking.remove(player);
-        hitSideTable.remove(player);
-        hitVecTable.remove(player);
-
+        var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
+        currentState.remove(player);
         BuildModeHandler.initializeMode(player);
     }
     public static void onBlockBroken(Player player, ServerboundPlayerBreakBlockPacket packet) {
@@ -59,10 +60,10 @@ public class BuildHandler {
 
     public static void onBlockSet(Player player, BlockPos startPos, Direction hitSide, Vec3 hitVec, boolean breaking) {
         var level = player.level();
-        var currentlyBreaking = level.isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
+        var currentState = level.isClientSide ? currentStateClient : currentStateServer;
 
         // === if currently in opposite mode, abort ===
-        if (currentlyBreaking.get(player) != null && (currentlyBreaking.get(player) != breaking)) {
+        if (currentState.get(player) != null && (currentState.get(player).breaking != breaking)) {
             initialize(player);
             return;
         }
@@ -77,19 +78,18 @@ public class BuildHandler {
             return;
         }
 
-        currentlyBreaking.put(player, breaking);
+        // If starting construction, remember hit details and block to place.
+        if (currentState.get(player) == null) {
+            var block = getPlayersBlock(player);
+            var blockState = getBlockStateWhenPlaced(player, block, startPos, hitSide, hitVec);
+            currentState.put(player, new BuildState(breaking, hitSide, hitVec, blockState));
+        }
 
         // === check if construction is finished ===
         startPos = actualPos(player, startPos, hitSide, breaking);
         if (!BuildModeHandler.onUse(player, startPos, breaking)) {
             // action might not have started (invalid startpos)
-            if (BuildModeHandler.isInProgress(player)) {
-                // Remember first hit result, might be required for block state
-                if (hitSideTable.get(player) == null) {
-                    hitSideTable.put(player, hitSide);
-                    hitVecTable.put(player, hitVec);
-                }
-            }
+            if (!BuildModeHandler.isInProgress(player)) initialize(player);
             return;
         }
         var blockSet = findBlockSet(player, startPos, hitSide, hitVec);
@@ -146,7 +146,6 @@ public class BuildHandler {
      * * If placing, we will place NEXT to the clicked block (face), unless:
      *  a) Quickreplace is on
      *  b) its something breakable like grass
-     *  c) (TODO): placing creates a double slab
      *  If Quickreplace is on AND something breakable was targeted, returns the block BELOW.
      *  * If breaking, we will always target the clicked block.
      * @param player Player
@@ -161,9 +160,8 @@ public class BuildHandler {
         if (blockPos != null && !breaking) {
             // Place NEXT to clicked block (in given direction), unless QuickReplace is on or block is replaceable.
             boolean replaceable = player.level().getBlockState(blockPos).canBeReplaced();
-            // XXX: becomesDoubleSlab is currently always False
-            boolean becomesDoubleSlab = SurvivalHelper.doesBecomeDoubleSlab(player, blockPos, hitSide);
-            if (!modifierSettings.enableQuickReplace() && !replaceable && !becomesDoubleSlab) {
+            // TODO: handle completion of slab to double-slab.
+            if (!modifierSettings.enableQuickReplace() && !replaceable) {
                 blockPos = blockPos.relative(hitSide);
             }
 
@@ -188,12 +186,6 @@ public class BuildHandler {
      */
     public static BlockSet findBlockSet(Player player, BlockPos blockPos, Direction hitSide, Vec3 hitVec) {
         var level = player.level();
-        //Keep blockstate the same for every block in the buildmode
-        //So dont rotate blocks when in the middle of placing wall etc.
-        if (isActive(player)) {
-            if (getHitSide(player) != null) hitSide = getHitSide(player);
-            if (getHitVec(player) != null) hitVec = getHitVec(player);
-        }
         // Don't know where to place anything - return valid but empty blockset.
         if (hitSide==null || hitVec == null) return new BlockSet(
                 new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), BlockPos.ZERO, BlockPos.ZERO
@@ -212,8 +204,6 @@ public class BuildHandler {
         var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
         int N = newCoordinates.size();
 
-        hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
-
         //Get blockstates (old and new)
         List<BlockState> previousBlockStates = newCoordinates.stream().map(pos -> player.level().getBlockState(pos)).toList();
         // Filter: remove if previousBlockState equals newBlockState or if cannot place.
@@ -222,7 +212,7 @@ public class BuildHandler {
 
         Map<BlockPos, BlockState> blockStateMap;
         if (!breaking) {
-            blockStateMap = BuildModifierHandler.findBlockStates(player, startCoordinates, hitVec, hitSide);
+            blockStateMap = findBlockStates(player, startCoordinates, hitVec, hitSide);
             // do not place at position i if not in blockStateMap or if already the same block.
             // FIXME: does not consider actual state, e.g. orientation of stairs.
             for (int i=0; i<N; i++) {
@@ -262,13 +252,59 @@ public class BuildHandler {
         return new BlockSet(filtCoordinates, filtPreviousBlockStates, filtBlockStates, firstPos, secondPos);
     }
 
+    public static Map<BlockPos, BlockState> findBlockStates(Player player, List<BlockPos> posList, Vec3 hitVec, Direction facing) {
+        var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
+        if (posList.isEmpty()) return new LinkedHashMap<>();
+
+        BlockState playersBlockState;
+        if (currentState.get(player) != null) {
+            // Action in progress, use blockstate as remembered on construction start.
+            playersBlockState = currentState.get(player).blockState;
+        }
+        else {
+            // Idly looking around, use current data.
+            var block = getPlayersBlock(player);
+            //hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
+            playersBlockState = getBlockStateWhenPlaced(player, block, posList.get(0), facing, hitVec);
+        }
+
+        var blockStates = BuildModeHandler.findBlockStates(posList, playersBlockState);
+        var modBlockStates = BuildModifierHandler.findBlockStates(player, blockStates);
+        // TODO Adjust blockstates for torches and ladders etc to place on a valid side
+        return modBlockStates;
+    }
+
+    public static Block getPlayersBlock(Player player) {
+        //Get itemstack - either a BlockItem or a proxy (container) that provides Items (e.g. RandomizerBag)
+        ItemStack itemStack = player.getItemInHand(InteractionHand.MAIN_HAND);
+        if (itemStack.isEmpty() || !CompatHelper.isItemBlockProxy(itemStack)) {
+            itemStack = player.getItemInHand(InteractionHand.OFF_HAND);
+        }
+        if (itemStack.isEmpty() || !CompatHelper.isItemBlockProxy(itemStack)) {
+            return null;
+        }
+        // TODO: Randomizer support: detect whether item is a shulker chest.
+        // We would need to return a list of blocks with count, so that prob's can be set.
+        var block = Block.byItem(itemStack.getItem());
+        return block == Blocks.AIR ? null : block;
+    }
+
+    public static BlockState getBlockStateWhenPlaced(Player player, Block block, BlockPos blockPos, Direction facing, Vec3 hitVec) {
+        if (block == null) return null;
+        var hand = InteractionHand.MAIN_HAND;;
+        var blockHitResult = new BlockHitResult(hitVec, facing, blockPos, false);
+        var itemStack = new ItemStack(block.asItem());
+        var context = new BlockPlaceContext(player.level(), player, hand, itemStack, blockHitResult);
+        return block.getStateForPlacement(context);
+    }
+
     /**
      * @param player Player to query
      * @return true if player is in the middle of a multistep break action.
      */
     public static boolean isCurrentlyBreaking(Player player) {
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        return currentlyBreaking.get(player) != null && currentlyBreaking.get(player);
+        var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
+        return currentState.get(player) != null && currentState.get(player).breaking;
     }
 
     /**
@@ -276,26 +312,7 @@ public class BuildHandler {
      * @return true if player is in the middle of a multistep place or break action.
      */
     public static boolean isActive(Player player) {
-        var currentlyBreaking = player.level().isClientSide ? currentlyBreakingClient : currentlyBreakingServer;
-        return currentlyBreaking.get(player) != null;
+        var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
+        return currentState.get(player) != null;
     }
-
-    /**
-     * Hit Direction of first click
-     * @param player Player to track
-     * @return Direction, may be null
-     */
-    public static Direction getHitSide(Player player) {
-        return hitSideTable.get(player);
-    }
-
-    /**
-     * Hit Vector of first click
-     * @param player Player to track
-     * @return Vector, may be null
-     */
-    public static Vec3 getHitVec(Player player) {
-        return hitVecTable.get(player);
-    }
-
 }

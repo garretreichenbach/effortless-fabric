@@ -85,8 +85,11 @@ public class BuildActionHandler {
                 break;
             case REPLACE:
                 BuildModifierHelper.cycleReplaceMode(player);
-                var modifierSettings = BuildModifierHelper.getModifierSettings(player);
-                Effortless.log(player, ChatFormatting.GOLD + "Replace " + ChatFormatting.RESET + (modifierSettings.enableReplace() ? (modifierSettings.enableQuickReplace() ? (ChatFormatting.GREEN + "QUICK") : (ChatFormatting.GREEN + "ON")) : (ChatFormatting.RED + "OFF")) + ChatFormatting.RESET, true);
+                logReplaceAction(player);
+                break;
+            case CYCLE_MIRROR:
+                BuildModifierHelper.cycleMirror(player);
+                logCycleMirrorAction(player);
                 break;
             case MAGNET:
                 BuildModeHelper.setEnableMagnet(player, !BuildModeHelper.isEnableMagnet(player));
@@ -158,11 +161,33 @@ public class BuildActionHandler {
 
         if (player.level().isClientSide &&
                 action != BuildAction.REPLACE &&
+                action != BuildAction.CYCLE_MIRROR &&
                 action != BuildAction.MODIFIER &&
                 action != BuildAction.OPEN_PLAYER_SETTINGS) {
 
             Effortless.logTranslate(player, "", action.getNameKey(), "", true);
         }
+    }
+
+    static void logReplaceAction(Player player) {
+        var modifierSettings = BuildModifierHelper.getModifierSettings(player);
+        Effortless.log(player, ChatFormatting.GOLD + "Replace " + ChatFormatting.RESET + (modifierSettings.enableReplace() ? (modifierSettings.enableQuickReplace() ? (ChatFormatting.GREEN + "QUICK") : (ChatFormatting.GREEN + "ON")) : (ChatFormatting.RED + "OFF")) + ChatFormatting.RESET, true);
+    }
+    static void logCycleMirrorAction(Player player) {
+        var modifierSettings = BuildModifierHelper.getModifierSettings(player);
+        var mirror = modifierSettings.mirrorSettings();
+        String text = "None";
+        if (mirror.enabled()) {
+            if (mirror.mirrorX() && mirror.mirrorZ()) text = "X | Z";
+            else if (mirror.mirrorX()) text = "X";
+            else if (mirror.mirrorZ()) text = "Z";
+            else text = "Custom";
+        }
+        Effortless.log(
+                player,
+                ChatFormatting.GOLD + "Mirror " + ChatFormatting.GREEN + text + ChatFormatting.RESET,
+                true
+        );
     }
 
 }

@@ -15,6 +15,7 @@ public enum Keys {
     //	UNDO("undo", InputConstants.UNKNOWN.getValue()),
 //	REDO("redo", InputConstants.UNKNOWN.getValue()),
     TOGGLE_REPLACE("toggle_replace", InputConstants.KEY_R),
+    CYCLE_MIRROR("cycle_mirror", InputConstants.KEY_M),
 //	TOGGLE_ALT_PLACE("toggle_alt_place", InputConstants.UNKNOWN.getValue()),
     ;
 

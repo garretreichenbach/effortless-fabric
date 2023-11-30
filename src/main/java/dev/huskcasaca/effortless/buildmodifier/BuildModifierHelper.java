@@ -14,6 +14,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 public class BuildModifierHelper {
 
@@ -48,14 +49,53 @@ public class BuildModifierHelper {
     public static void setReplaceMode(Player player, ReplaceMode mode) {
         ModifierSettings modifierSettings = getModifierSettings(player);
         modifierSettings = new ModifierSettings(modifierSettings.arraySettings(), modifierSettings.mirrorSettings(), modifierSettings.radialMirrorSettings(), mode);
-        BuildModifierHelper.setModifierSettings(player, modifierSettings);
         setModifierSettings(player, modifierSettings);
     }
 
     public static void cycleReplaceMode(Player player) {
         ModifierSettings modifierSettings = getModifierSettings(player);
         modifierSettings = new ModifierSettings(modifierSettings.arraySettings(), modifierSettings.mirrorSettings(), modifierSettings.radialMirrorSettings(), ReplaceMode.values()[(modifierSettings.replaceMode().ordinal() + 1) % ReplaceMode.values().length]);
-        BuildModifierHelper.setModifierSettings(player, modifierSettings);
+        setModifierSettings(player, modifierSettings);
+    }
+
+    public static void cycleMirror(Player player) {
+        int DEFAULT_RADIUS = 32;
+        ModifierSettings modifierSettings = getModifierSettings(player);
+        var mirror = modifierSettings.mirrorSettings();
+        var pos = player.position();
+        // Find mirror coordinates by snapping position to nearest multiple of 0.5.
+        double x = Math.floor(2 * (pos.x+0.25)) * 0.5;
+        double y = Math.floor(2 * (pos.y+0.25)) * 0.5;
+        double z = Math.floor(2 * (pos.z+0.25)) * 0.5;
+
+        // Find mode to switch to.
+        // * If new position, use X|Z;
+        // * Otherwise, cycle X|Z - X - Z - None.
+        boolean mirrorX, mirrorZ;
+        if (mirror.position().x != x || mirror.position().z != z) {
+            mirrorX = true;
+            mirrorZ = true;
+        }
+        else {
+            mirrorZ = !mirror.mirrorZ();
+            mirrorX = (mirror.mirrorX() == mirror.mirrorZ());
+        }
+        // New mirror setting:
+        // - enabled if mirrorX or mirrorZ is true
+        // - at new centerpoint
+        // - always disable Y
+        // - retain other settings (radius, visualization)
+        mirror = new Mirror.MirrorSettings(
+                mirrorX||mirrorZ,
+                new Vec3(x, y, z),
+                mirrorX,
+                false,
+                mirrorZ,
+                mirror.radius(),
+                mirror.drawLines(),
+                mirror.drawPlanes()
+        );
+        modifierSettings = modifierSettings.withMirrorSettings(mirror);
         setModifierSettings(player, modifierSettings);
     }
 

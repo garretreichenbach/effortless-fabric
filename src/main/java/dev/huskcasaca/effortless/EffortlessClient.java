@@ -106,14 +106,11 @@ public class EffortlessClient implements ClientModInitializer {
 //        //QuickReplace toggle
         if (Keys.TOGGLE_REPLACE.getKeyMapping().consumeClick()) {
             BuildActionHandler.performAction(player, BuildAction.REPLACE);
-            var modifierSettings = BuildModifierHelper.getModifierSettings(player);
             Packets.sendToServer(new ServerboundPlayerBuildActionPacket(BuildAction.REPLACE));
-            Effortless.log(
-                    player,
-                    ChatFormatting.GOLD + "Replace " + ChatFormatting.RESET
-                            + (modifierSettings.enableReplace() ? (modifierSettings.enableQuickReplace() ? (ChatFormatting.GREEN + "QUICK") : (ChatFormatting.GREEN + "ON")) : (ChatFormatting.RED + "OFF")) + ChatFormatting.RESET,
-                    true
-            );
+        }
+        if (Keys.CYCLE_MIRROR.getKeyMapping().consumeClick()) {
+            BuildActionHandler.performAction(player, BuildAction.CYCLE_MIRROR);
+            Packets.sendToServer(new ServerboundPlayerBuildActionPacket(BuildAction.CYCLE_MIRROR));
         }
 
         //Radial menu

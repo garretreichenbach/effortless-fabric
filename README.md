@@ -55,6 +55,8 @@ you can start construction in air or water.
 - **Array**: Copies builds and block states in a certain direction a certain number of times.
 - **Radial Mirror**: Places blocks in a circle around a certain point. The circle can be divided into slices, and each slide will copy your block placements.
 
+Use M key to quickly cycle between X/Z Mirror modes (centered on player's position).
+
 ### Replace Modes (Keybind: R)
 
 - **Disable**: Placing blocks does not replace any existing blocks
@@ -79,6 +81,7 @@ This mod is licensed under GPLv3. For full text see LICENSE file.
 ## Changelog
 ### Upcoming (Fork only)
 * Single mode: can place block in air by looking straight down
+* Add keybind M to cycle X/Z mirror mode.
 ### 1.6.5 (Fork only)
 * Fix occasional crash when closing radial menu without clicking anything
 * Fix toggle-replace-mode keybind not working

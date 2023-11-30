@@ -6,6 +6,7 @@ public enum BuildAction {
     UNDO("undo"),
     REDO("redo"),
     REPLACE("replace"),
+    CYCLE_MIRROR("cycle_mirror"),
     MAGNET("magnet"),
     MODIFIER("modifier"),
     // TODO: remove OPEN_PLAYER_SETTINGS
@@ -46,6 +47,7 @@ public enum BuildAction {
             case UNDO -> "undo";
             case REDO -> "redo";
             case REPLACE -> "replace";
+            case CYCLE_MIRROR -> "cycle_mirror";
             case MAGNET -> "magnet";
             case MODIFIER -> "modifier";
             case OPEN_PLAYER_SETTINGS -> "openPlayerSettings";

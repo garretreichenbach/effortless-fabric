@@ -46,6 +46,7 @@
   "key.effortless.undo.desc": "Place/Break Undo",
   "key.effortless.redo.desc": "Place/Break Redo",
   "key.effortless.toggle_replace.desc": "Toggle Quick Replace",
+  "key.effortless.cycle_mirror.desc": "Cycle X/Z Mirror mode",
   "key.effortless.toggle_alt_place.desc": "Toggle Alternative Placement",
   "effortless.mode.disable": "Disable",
   "effortless.mode.vanilla": "Vanilla",

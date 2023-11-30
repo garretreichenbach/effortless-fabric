@@ -28,6 +28,10 @@ public record ModifierSettings(
         this(arraySettings, mirrorSettings, radialMirrorSettings, ReplaceMode.DISABLED);
     }
 
+    public ModifierSettings withMirrorSettings(Mirror.MirrorSettings mirrorSettings) {
+        return new ModifierSettings(arraySettings, mirrorSettings, radialMirrorSettings, replaceMode);
+    }
+
     public boolean enableReplace() {
         return replaceMode != ReplaceMode.DISABLED;
     }

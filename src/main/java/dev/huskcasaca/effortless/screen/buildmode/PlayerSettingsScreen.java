@@ -69,7 +69,7 @@ public class PlayerSettingsScreen extends Screen {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
+        this.renderBackground(guiGraphics);
 
         int yy = top;
         guiGraphics.drawString(font, "Shader type", left, yy + 5, 0xFFFFFF);
@@ -172,9 +172,9 @@ public class PlayerSettingsScreen extends Screen {
         }
 
         @Override
-        public boolean mouseScrolled(double mouseX, double mouseY, double scrolledX, double scrolledY) {
+        public boolean mouseScrolled(double mouseX, double mouseY, double scrolled) {
             if (!showShaderList) return false;
-            return super.mouseScrolled(mouseX, mouseY, scrolledX, scrolledY);
+            return super.mouseScrolled(mouseX, mouseY, scrolled);
         }
 
         @Override
@@ -195,7 +195,7 @@ public class PlayerSettingsScreen extends Screen {
         //From AbstractList, disabled parts
         @Override
         public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {
-            //this.renderBackground(guiGraphics, mouseX, mouseY, partialTicks);
+            //this.renderBackground(guiGraphics);
             int scrollbarPosition = this.getScrollbarPosition();
             int scrollbarPositionWithOffset = scrollbarPosition + 6;
             Tesselator tesselator = Tesselator.getInstance();

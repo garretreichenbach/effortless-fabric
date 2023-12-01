@@ -95,6 +95,7 @@ If any of these bothers you particularly, please open a github issue (or Pull re
 * In particular this fixes that stairs could not be placed upside-down.
 * Single mode: can place block in air by looking straight down.
 * Add keybind M to cycle X/Z mirror mode.
+* Fix mirror being offset by 1/2 block for negative coordinates
 * Considerable reorganisation of core building code, to make it easier to modify.
  
 ### 1.6.5 (Fork only)

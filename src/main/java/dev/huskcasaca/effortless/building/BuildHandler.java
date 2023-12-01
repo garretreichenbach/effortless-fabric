@@ -186,10 +186,6 @@ public class BuildHandler {
      */
     public static BlockSet findBlockSet(Player player, BlockPos blockPos, Direction hitSide, Vec3 hitVec) {
         var level = player.level();
-        // Don't know where to place anything - return valid but empty blockset.
-        if (hitSide==null || hitVec == null) return new BlockSet(
-                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), BlockPos.ZERO, BlockPos.ZERO
-        );
 
         var breaking = isCurrentlyBreaking(player);
 
@@ -197,9 +193,14 @@ public class BuildHandler {
         var skipRaytrace = breaking || BuildModifierHelper.isQuickReplace(player);
         var startCoordinates = BuildModeHandler.findCoordinates(player, blockPos, skipRaytrace);
 
+        // Don't know where to place anything - return valid but empty blockset.
+        if (startCoordinates.isEmpty()) return new BlockSet(
+                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), BlockPos.ZERO, BlockPos.ZERO
+        );
+
         //Remember first and last point for the shader
-        var firstPos = startCoordinates.isEmpty() ? BlockPos.ZERO: startCoordinates.get(0);
-        var secondPos = startCoordinates.isEmpty() ? BlockPos.ZERO: startCoordinates.get(startCoordinates.size()-1);
+        var firstPos =  startCoordinates.get(0);
+        var secondPos =  startCoordinates.get(startCoordinates.size()-1);
 
         var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
         int N = newCoordinates.size();
@@ -291,7 +292,9 @@ public class BuildHandler {
 
     public static BlockState getBlockStateWhenPlaced(Player player, Block block, BlockPos blockPos, Direction facing, Vec3 hitVec) {
         if (block == null) return null;
-        var hand = InteractionHand.MAIN_HAND;;
+        var hand = InteractionHand.MAIN_HAND;
+        // If aiming nowhere in particular, return default state.
+        if (facing == null || hitVec == null || blockPos == null) return block.defaultBlockState();
         var blockHitResult = new BlockHitResult(hitVec, facing, blockPos, false);
         var itemStack = new ItemStack(block.asItem());
         var context = new BlockPlaceContext(player.level(), player, hand, itemStack, blockHitResult);

@@ -22,7 +22,7 @@ public class Single extends OneClickBuildable {
 
     @Override
     public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
-        return (blockPos != null);
+        return !findCoordinates(player, blockPos, false).isEmpty();
     }
 
     @Override

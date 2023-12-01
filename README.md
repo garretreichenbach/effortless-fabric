@@ -34,6 +34,10 @@ filled vs hollow wall) are on the right.
 In Single mode, you can place blocks beneath your feet by looking straight downward. Thus
 you can start construction in air or water.
 
+Use R key to toggle replace mode.
+
+Use M key to quickly cycle between X/Z Mirror modes (centered on player's position).
+
 ### Build Modes
 
 - **Disable**: Place in vanilla way
@@ -55,15 +59,22 @@ you can start construction in air or water.
 - **Array**: Copies builds and block states in a certain direction a certain number of times.
 - **Radial Mirror**: Places blocks in a circle around a certain point. The circle can be divided into slices, and each slide will copy your block placements.
 
-Use M key to quickly cycle between X/Z Mirror modes (centered on player's position).
-
-### Replace Modes (Keybind: R)
+### Replace Modes
 
 - **Disable**: Placing blocks does not replace any existing blocks
 - **Normal**: Placing blocks replaces the existing blocks except the first one
 - **Quick**: Placing blocks replaces the existing blocks including the first one
 
-## Known issues
+## Roadmap
+### Future plans as of 1.7.0
+
+- Implement a "copy-paste" mode: scan a construction (like Cube mode), then 
+place copies of it interactively.
+- Place / "break" water blocks by holding water bucket
+- Stair mode: Place with 45° bevel e.g. for roof corners
+- Improve slab handling, particularly allow building of slab stairs
+
+### Known issues
 
 If any of these bothers you particularly, please open a github issue (or Pull request :-))
 
@@ -76,74 +87,24 @@ If any of these bothers you particularly, please open a github issue (or Pull re
 * No support for Forge, Bukkit, etc and won't add this either due to total lack of
   knowhow.
 
-## License info
-
-This mod is licensed under GPLv3. For full text see LICENSE file.
-
 ## Changelog
-### Upcoming (Fork only)
+### 1.7.0 (Fork only)
+ 
 * Fix block state changing while "dragging" construction area. Blocks will now be placed
   as they were on first click.
 * In particular this fixes that stairs could not be placed upside-down.
-* Single mode: can place block in air by looking straight down
+* Single mode: can place block in air by looking straight down.
 * Add keybind M to cycle X/Z mirror mode.
+* Considerable reorganisation of core building code, to make it easier to modify.
+ 
 ### 1.6.5 (Fork only)
+
 * Fix occasional crash when closing radial menu without clicking anything
 * Fix toggle-replace-mode keybind not working
-### 1.6.3
-* Fix action bar text covering issue
-* Fix image resource path converting issue
-### 1.6.2
-* Fix block breaking issue on server side
-### 1.6.1
-* Fix compatability with Gravity API
-### 1.6.0
-* Add build orientation option for circle modes
-* Add block count indicator
-* Add preview for insufficient block
-* Add build commands
-* Fix array and mirror block duplication issue
-* Fix block breaking issue in survival mode
-### 1.5.3
-* Fix compatibility with OptiFine
-* Fix modifier settings duplicate items
-### 1.5.2
-* Fix insufficient block placing crash issue in survival mod
-### 1.5.1
-* Fix undo/redo in creative mode with no matching item in inventory
-### 1.5.0
-* Add build info in gui
-* Rearrange modifier settings entries
-* Fix block preview issue in place with large coordinates
-### 1.4.2
-* Fix network packet issue
-### 1.4.1
-* Fix player dimension change issue
-### 1.4.0
-* Add vanilla keybindings
-* Build modifier settings is no longer save to player data
-* Fix some mixin missing issue on server side
-* Fix contact info in mod description file
-### 1.3.0
-* Rearrange radial menu buttons
-* Fix wall items placing issue
-* Fix no hitbox item breaking issue
-### 1.2.1
-* Add message when closing radial menu
-* Fix player attach action
-* Fix new player settings issue
-### 1.2.0
-* Fix magnet texture issue
-* Fix modifier settings
-### 1.1.1
-* Add cloth config and modmenu
-* Fix access widener issue
-### 1.1.0
-* Add item magnet
-### 1.0.1
-* Fix left ctrl not working
-### 1.0.0
-* Initial release
+ 
+### Up to 1.6.3
+ 
+See original repository of huskcasaca.
 
 ## Credits
 
@@ -153,4 +114,4 @@ This mod is licensed under GPLv3. For full text see LICENSE file.
 
 ## License
 
-Effortless Fabric is licensed under LGPLv3.
+Effortless Fabric is licensed under LGPLv3. For full text see LICENSE file.

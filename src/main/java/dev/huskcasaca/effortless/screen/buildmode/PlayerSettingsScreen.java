@@ -146,7 +146,6 @@ public class PlayerSettingsScreen extends Screen {
         public void setSelected(PlayerSettingsScreen.ShaderTypeList.ShaderTypeEntry entry) {
             super.setSelected(entry);
             SoundManager soundManager = Minecraft.getInstance().getSoundManager();
-            soundManager.reload();
             soundManager.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
             Effortless.log("Selected shader " + entry.shaderType.name);
             shaderTypeButton.setMessage(entry.shaderType.name);

@@ -85,7 +85,6 @@ public class RadialMenuScreen extends Screen {
 
     public static void playRadialMenuSound() {
         SoundManager soundManager = Minecraft.getInstance().getSoundManager();
-        soundManager.reload();
         soundManager.play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 

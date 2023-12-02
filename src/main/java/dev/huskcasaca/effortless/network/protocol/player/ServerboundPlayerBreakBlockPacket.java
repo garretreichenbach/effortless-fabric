@@ -34,14 +34,18 @@ public record ServerboundPlayerBreakBlockPacket(
     }
 
     public ServerboundPlayerBreakBlockPacket(FriendlyByteBuf friendlyByteBuf) {
-        this(friendlyByteBuf.readBoolean(), friendlyByteBuf.readBlockPos(), Direction.from3DDataValue(friendlyByteBuf.readByte()), new Vec3(friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble()));
+        this(friendlyByteBuf.readBoolean(),
+                friendlyByteBuf.readBlockPos(),
+                Direction.from3DDataValue(friendlyByteBuf.readByte()),
+                new Vec3(friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble())
+        );
     }
 
     @Override
     public void write(FriendlyByteBuf friendlyByteBuf) {
         friendlyByteBuf.writeBoolean(blockHit);
         friendlyByteBuf.writeBlockPos(blockPos);
-        friendlyByteBuf.writeInt(hitSide.get3DDataValue());
+        friendlyByteBuf.writeByte(hitSide.get3DDataValue());
         friendlyByteBuf.writeDouble(hitVec.x);
         friendlyByteBuf.writeDouble(hitVec.y);
         friendlyByteBuf.writeDouble(hitVec.z);

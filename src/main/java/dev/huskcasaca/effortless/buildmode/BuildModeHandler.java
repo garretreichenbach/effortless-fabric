@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.buildmode;
 
+import dev.huskcasaca.effortless.building.BuildOp;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import dev.huskcasaca.effortless.entity.player.EffortlessDataProvider;
 import dev.huskcasaca.effortless.network.Packets;
@@ -10,6 +11,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -27,10 +29,10 @@ public class BuildModeHandler {
      * @param blockPos position that was clicked (as per packet)
      * @return True if construction is now finished.
      */
-    public static boolean onUse(Player player, BlockPos blockPos, boolean breaking) {
+    public static boolean onUse(Player player, BlockPos blockPos, BuildOp operation) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
         var buildMode = BuildModeHelper.getModeSettings(player).buildMode().getInstance();
-        var skipRaytrace = modifierSettings.enableQuickReplace() || breaking;
+        var skipRaytrace = modifierSettings.enableQuickReplace() || operation == BuildOp.BREAK;
         return buildMode.onUse(player, blockPos, skipRaytrace);
     }
 
@@ -55,12 +57,13 @@ public class BuildModeHandler {
      * @return map of position to block state.
      */
     public static LinkedHashMap<BlockPos, BlockState> findBlockStates(
-            List<BlockPos> posList, BlockState playersBlockState
+            List<BlockPos> posList, BlockState playersBlockState, BuildOp operation
     ) {
         var result = new LinkedHashMap<BlockPos, BlockState>(posList.size());
-        if (playersBlockState == null) return result;
+        var blockState = operation==BuildOp.PLACE ? playersBlockState : Blocks.AIR.defaultBlockState();
+        if (blockState == null) return result;
         for (var blockPos : posList) {
-            result.put(blockPos, playersBlockState);
+            result.put(blockPos, blockState);
         }
         return result;
     }

@@ -29,15 +29,14 @@ import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
+import static dev.huskcasaca.effortless.building.BuildOp.*;
+
 public class BuildHandler {
-    //Static variables are shared between client and server in singleplayer
-    //We need them separate
-    // Entry = false -> player is currently placing, wait for next click
-    // Entry = true -> player is currently breaking, wait for next click
-    // no Entry for player -> no operation in progress
-    private record BuildState(boolean breaking, Direction hitSide, Vec3 hitVec, BlockState blockState) {
+    private record BuildState(BuildOp operation, Direction hitSide, Vec3 hitVec, BlockState blockState) {
 
     }
+    //Static variables are shared between client and server in singleplayer
+    //We need them separate
     private static final Dictionary<Player, BuildState> currentStateClient = new Hashtable<>();
     private static final Dictionary<Player, BuildState> currentStateServer = new Hashtable<>();
 
@@ -51,19 +50,19 @@ public class BuildHandler {
         BuildModeHandler.initializeMode(player);
     }
     public static void onBlockBroken(Player player, ServerboundPlayerBreakBlockPacket packet) {
-        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), true);
+        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), BREAK);
     }
 
     public static void onBlockPlaced(Player player, ServerboundPlayerPlaceBlockPacket packet) {
-        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), false);
+        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), PLACE);
     }
 
-    public static void onBlockSet(Player player, BlockPos startPos, Direction hitSide, Vec3 hitVec, boolean breaking) {
+    public static void onBlockSet(Player player, BlockPos startPos, Direction hitSide, Vec3 hitVec, BuildOp operation) {
         var level = player.level();
         var currentState = level.isClientSide ? currentStateClient : currentStateServer;
 
-        // === if currently in opposite mode, abort ===
-        if (currentState.get(player) != null && (currentState.get(player).breaking != breaking)) {
+        // === if currently in other mode, abort ===
+        if (currentState.get(player) != null && (currentState.get(player).operation != operation)) {
             initialize(player);
             return;
         }
@@ -71,6 +70,7 @@ public class BuildHandler {
         int maxReach = ReachHelper.getMaxReachDistance(player);
         if (
                 startPos != null
+                        && operation != SCAN
                         && BuildModeHelper.getBuildMode(player) != BuildMode.DISABLE
                         && player.blockPosition().distSqr(startPos) > maxReach * maxReach
         ) {
@@ -82,12 +82,12 @@ public class BuildHandler {
         if (currentState.get(player) == null) {
             var block = getPlayersBlock(player);
             var blockState = getBlockStateWhenPlaced(player, block, startPos, hitSide, hitVec);
-            currentState.put(player, new BuildState(breaking, hitSide, hitVec, blockState));
+            currentState.put(player, new BuildState(operation, hitSide, hitVec, blockState));
         }
 
         // === check if construction is finished ===
-        startPos = actualPos(player, startPos, hitSide, breaking);
-        if (!BuildModeHandler.onUse(player, startPos, breaking)) {
+        startPos = actualPos(player, startPos, hitSide);
+        if (!BuildModeHandler.onUse(player, startPos, operation)) {
             // action might not have started (invalid startpos)
             if (!BuildModeHandler.isInProgress(player)) initialize(player);
             return;
@@ -95,14 +95,21 @@ public class BuildHandler {
         var blockSet = findBlockSet(player, startPos, hitSide, hitVec);
         //Effortless.log(String.format("Setting %d blocks", blockSet.coordinates().size()));
         if (level.isClientSide) {
-            if (breaking)
-                BlockPreviewRenderer.getInstance().onBlocksBroken();
-            else
-                BlockPreviewRenderer.getInstance().onBlocksPlaced();
-            initialize(player);
+            switch(operation) {
+                case BREAK -> BlockPreviewRenderer.getInstance().onBlocksBroken();
+
+                case PLACE -> BlockPreviewRenderer.getInstance().onBlocksPlaced();
+                case SCAN -> BlockPreviewRenderer.getInstance().onBlocksScanned();
+            }
             // Return here to only set blocks on server side - avoids Ghost-block problems,
             // but induces some lag if connected to a remote server.
+            //initialize(player);
             //return;
+        }
+        if (operation == SCAN) {
+            // Scan performed in onUse
+            initialize(player);
+            return;
         }
 
         //break/place all those blocks
@@ -151,13 +158,13 @@ public class BuildHandler {
      * @param player Player
      * @param blockPos Block that was clicked
      * @param hitSide Face of the block that was clicked
-     * @param breaking Whether player intends to break or place.
      * @return actual block position to use.
      */
-    public static BlockPos actualPos(Player player, BlockPos blockPos, Direction hitSide, boolean breaking) {
+    public static BlockPos actualPos(Player player, BlockPos blockPos, Direction hitSide) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
+        var operation = currentOperation(player);
         // When placing, find out whether we want to offset.
-        if (blockPos != null && !breaking) {
+        if (blockPos != null && operation != BREAK) {
             // Place NEXT to clicked block (in given direction), unless QuickReplace is on or block is replaceable.
             boolean replaceable = player.level().getBlockState(blockPos).canBeReplaced();
             // TODO: handle completion of slab to double-slab.
@@ -187,10 +194,10 @@ public class BuildHandler {
     public static BlockSet findBlockSet(Player player, BlockPos blockPos, Direction hitSide, Vec3 hitVec) {
         var level = player.level();
 
-        var breaking = isCurrentlyBreaking(player);
+        var operation = currentOperation(player);
 
         //get coordinates
-        var skipRaytrace = breaking || BuildModifierHelper.isQuickReplace(player);
+        var skipRaytrace = (operation == BREAK) || BuildModifierHelper.isQuickReplace(player);
         var startCoordinates = BuildModeHandler.findCoordinates(player, blockPos, skipRaytrace);
 
         // Don't know where to place anything - return valid but empty blockset.
@@ -199,8 +206,8 @@ public class BuildHandler {
         );
 
         //Remember first and last point for the shader
-        var firstPos =  startCoordinates.get(0);
-        var secondPos =  startCoordinates.get(startCoordinates.size()-1);
+        var firstPos = startCoordinates.get(0);
+        var secondPos = startCoordinates.get(startCoordinates.size() - 1);
 
         var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
         int N = newCoordinates.size();
@@ -208,32 +215,29 @@ public class BuildHandler {
         //Get blockstates (old and new)
         List<BlockState> previousBlockStates = newCoordinates.stream().map(pos -> player.level().getBlockState(pos)).toList();
         // Filter: remove if previousBlockState equals newBlockState or if cannot place.
-        var isReplace = (breaking || BuildModifierHelper.isReplace(player));
+        var isReplace = (operation != PLACE || BuildModifierHelper.isReplace(player));
         var filter = new ArrayList<>(newCoordinates.stream().map(pos -> SurvivalHelper.canSetBlock(player, pos, isReplace)).toList());
 
         Map<BlockPos, BlockState> blockStateMap;
-        if (!breaking) {
-            blockStateMap = findBlockStates(player, startCoordinates, hitVec, hitSide);
-            // do not place at position i if not in blockStateMap or if already the same block.
-            // FIXME: does not consider actual state, e.g. orientation of stairs.
-            for (int i=0; i<N; i++) {
+        blockStateMap = findBlockStates(player, startCoordinates, hitVec, hitSide);
+        // do not place at position i if not in blockStateMap or if already the same block.
+        // FIXME: does not consider actual state, e.g. orientation of stairs.
+        if (operation != SCAN) {
+            for (int i = 0; i < N; i++) {
                 var blockState = blockStateMap.get(newCoordinates.get(i));
-                if (blockState==null || previousBlockStates.get(i).getBlock() == blockState.getBlock()) filter.set(i, false);
+                if (blockState == null || previousBlockStates.get(i).getBlock() == blockState.getBlock())
+                    filter.set(i, false);
             }
         }
-        else {
-            blockStateMap = null;
-            // do not "break" things that are already air.
+        //If the player is going to inst-break grass or a plant, make sure to only break other inst-breakable things
+        if (
+                operation == BREAK
+                && !player.isCreative()
+                && previousBlockStates.get(0).getDestroySpeed(level, newCoordinates.get(0)) == 0f
+        ) {
             for (int i=0; i<N; i++)
-                if (previousBlockStates.get(i).getBlock() == Blocks.AIR) filter.set(i, false);
-            //If the player is going to inst-break grass or a plant, make sure to only break other inst-breakable things
-            if (
-                !player.isCreative() && previousBlockStates.get(0).getDestroySpeed(level, newCoordinates.get(0)) == 0f
-            ) {
-                for (int i=0; i<N; i++)
-                    if (previousBlockStates.get(i).getDestroySpeed(level, newCoordinates.get(i)) > 0f)
-                        filter.set(i, false);
-            };
+                if (previousBlockStates.get(i).getDestroySpeed(level, newCoordinates.get(i)) > 0f)
+                    filter.set(i, false);
         }
 
         var filtCoordinates = new ArrayList<BlockPos>(N);
@@ -246,7 +250,7 @@ public class BuildHandler {
             if (filter.get(i)) {
                 filtCoordinates.add(newCoordinates.get(i));
                 filtPreviousBlockStates.add(previousBlockStates.get(i));
-                filtBlockStates.add(breaking ? Blocks.AIR.defaultBlockState() : blockStateMap.get(newCoordinates.get(i)));
+                filtBlockStates.add(blockStateMap.get(newCoordinates.get(i)));
             }
             if (--limit <= 0) break;
         }
@@ -256,6 +260,7 @@ public class BuildHandler {
     public static Map<BlockPos, BlockState> findBlockStates(Player player, List<BlockPos> posList, Vec3 hitVec, Direction facing) {
         var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
         if (posList.isEmpty()) return new LinkedHashMap<>();
+        var operation = currentOperation(player);
 
         BlockState playersBlockState;
         if (currentState.get(player) != null) {
@@ -269,7 +274,7 @@ public class BuildHandler {
             playersBlockState = getBlockStateWhenPlaced(player, block, posList.get(0), facing, hitVec);
         }
 
-        var blockStates = BuildModeHandler.findBlockStates(posList, playersBlockState);
+        var blockStates = BuildModeHandler.findBlockStates(posList, playersBlockState, operation);
         var modBlockStates = BuildModifierHandler.findBlockStates(player, blockStates);
         // TODO Adjust blockstates for torches and ladders etc to place on a valid side
         return modBlockStates;
@@ -302,12 +307,16 @@ public class BuildHandler {
     }
 
     /**
+     * Returns player's current operation.
+     * If in idle state, will return PLACE, unless we are in structure mode and nothing
+     * is scanned - then SCAN.
      * @param player Player to query
-     * @return true if player is in the middle of a multistep break action.
+     * @return operation that player is performing
      */
-    public static boolean isCurrentlyBreaking(Player player) {
+    public static BuildOp currentOperation(Player player) {
         var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
-        return currentState.get(player) != null && currentState.get(player).breaking;
+        var mode = BuildModeHelper.getBuildMode(player);
+        return (currentState.get(player) != null) ? currentState.get(player).operation : PLACE;
     }
 
     /**

@@ -40,6 +40,13 @@ public class BuildHandler {
     private static final Dictionary<Player, BuildState> currentStateClient = new Hashtable<>();
     private static final Dictionary<Player, BuildState> currentStateServer = new Hashtable<>();
 
+    /**
+     * Reset:
+     *  current operation,
+     *  Blockstate+Hit result when operation started,
+     *  intermediate block positions
+     * @param player the Player
+     */
     public static void initialize(Player player) {
         //Resetting mode, so not placing or breaking
         if (player == null) {
@@ -87,65 +94,53 @@ public class BuildHandler {
 
         // === check if construction is finished ===
         startPos = actualPos(player, startPos, hitSide);
-        if (!BuildModeHandler.onUse(player, startPos, operation)) {
-            // action might not have started (invalid startpos)
-            if (!BuildModeHandler.isInProgress(player)) initialize(player);
-            return;
-        }
         var blockSet = findBlockSet(player, startPos, hitSide, hitVec);
-        //Effortless.log(String.format("Setting %d blocks", blockSet.coordinates().size()));
-        if (level.isClientSide) {
+
+        // Tells us if we ought to place the blockset
+        var commitChange = BuildModeHandler.onUse(player, startPos, operation);
+
+        if (commitChange && level.isClientSide) {
             switch(operation) {
                 case BREAK -> BlockPreviewRenderer.getInstance().onBlocksBroken();
 
                 case PLACE -> BlockPreviewRenderer.getInstance().onBlocksPlaced();
                 case SCAN -> BlockPreviewRenderer.getInstance().onBlocksScanned();
             }
-            // Return here to only set blocks on server side - avoids Ghost-block problems,
-            // but induces some lag if connected to a remote server.
-            //initialize(player);
-            //return;
         }
-        if (operation == SCAN) {
-            // Scan performed in onUse
-            initialize(player);
-            return;
-        }
-
-        //break/place all those blocks
-        var coordinates = blockSet.coordinates();
-        // current inventory stack to deduct items from
-        var itemStack = ItemStack.EMPTY;
-        for (int i = 0; i < coordinates.size(); i++) {
-            var blockPos = coordinates.get(i);
-            if (!level.isLoaded(blockPos)) continue;
-            var blockState = blockSet.newBlockStates().get(i);
-            if (blockState.isAir()) {
-                SurvivalHelper.breakBlock(level, player, blockPos, false);
-            }
-            else {
-                // Make sure that the player has matching item for target block
-                if (!player.isCreative()) {
-                    if (
-                            itemStack.isEmpty()
-                                    || !(itemStack.getItem() instanceof BlockItem)
-                                    || ((BlockItem) itemStack.getItem()).getBlock().equals(blockState.getBlock())
-                    ) {
-                        // TODO: prefer main hand / off hand slots
-                        itemStack = InventoryHelper.findItemStackInInventory(player, blockState.getBlock());
-                        // not found, do NOT place the block.
-                        if (itemStack.isEmpty()) continue;
+        // add &&!level.isClientSide to only set blocks on server. Avoids ghost blocks but induces lag.
+        if (commitChange && operation != SCAN) {
+            //Effortless.log(String.format("Setting %d blocks", blockSet.coordinates().size()));
+            // current inventory stack to deduct items from
+            var itemStack = ItemStack.EMPTY;
+            for (int i = 0; i < blockSet.size(); i++) {
+                var blockPos = blockSet.coordinates().get(i);
+                if (!level.isLoaded(blockPos)) continue;
+                var blockState = blockSet.newBlockStates().get(i);
+                if (blockState.isAir()) {
+                    SurvivalHelper.breakBlock(level, player, blockPos, false);
+                } else {
+                    // Make sure that the player has matching item for target block
+                    if (!player.isCreative()) {
+                        if (
+                                itemStack.isEmpty()
+                                        || !(itemStack.getItem() instanceof BlockItem)
+                                        || ((BlockItem) itemStack.getItem()).getBlock().equals(blockState.getBlock())
+                        ) {
+                            // TODO: prefer main hand / off hand slots
+                            itemStack = InventoryHelper.findItemStackInInventory(player, blockState.getBlock());
+                            // not found, do NOT place the block.
+                            if (itemStack.isEmpty()) continue;
+                        }
                     }
+                    SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack);
                 }
-                SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack);
             }
+            //find actual new blockstates for undo
+            List<BlockState> actualNewBlockStates = blockSet.coordinates().stream().map(pos -> level.getBlockState(pos)).toList();
+            UndoRedo.addUndo(player, blockSet.withNewBlockStates(actualNewBlockStates));
         }
-        //find actual new blockstates for undo
-        List<BlockState> actualNewBlockStates = coordinates.stream().map(pos -> level.getBlockState(pos)).toList();
-
-        UndoRedo.addUndo(player, blockSet.withNewBlockStates(actualNewBlockStates));
-        // Action completed.
-        initialize(player);
+        // Action completed?
+        if (!BuildModeHandler.isInProgress(player)) initialize(player);
     }
 
     /**

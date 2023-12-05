@@ -27,6 +27,8 @@ public abstract class TwoClickBuildable extends MultipleClickBuildable {
             firstPosTable.put(player.getUUID(), blockPos);
             return false;
         } else {
+            // resets inProgress to false
+            rightClickTable.put(player.getUUID(), 0);
             return true;
         }
     }

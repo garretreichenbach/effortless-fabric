@@ -211,6 +211,8 @@ public abstract class ThreeClickBuildable extends MultipleClickBuildable {
                 secondPosTable.put(player.getUUID(), secondPos);
             return false;
         } else {
+            // resets inProgress to false
+            rightClickTable.put(player.getUUID(), 0);
             return true;
         }
     }

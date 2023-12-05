@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.buildmode;
 
+import dev.huskcasaca.effortless.building.BuildOp;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -14,6 +15,19 @@ public interface Buildable {
      * @param player the Player
      */
     void initialize(Player player);
+
+    /**
+     * The operation that will be performed on USE click
+     * @param player The Player
+     * @return BuildOperation, null if forbidden
+     */
+    BuildOp operationOnUse(Player player);
+    /**
+     * The operation that will be performed on ATTACK click
+     * @param player The Player
+     * @return BuildOperation, null if forbidden
+     */
+    BuildOp operationOnAttack(Player player);
 
     /**
      * Tells us if a construction is ongoing for player

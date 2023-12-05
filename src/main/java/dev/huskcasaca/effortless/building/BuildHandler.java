@@ -57,19 +57,28 @@ public class BuildHandler {
         BuildModeHandler.initializeMode(player);
     }
     public static void onBlockBroken(Player player, ServerboundPlayerBreakBlockPacket packet) {
-        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), BREAK);
+        onBlockSet(player, packet.blockHit() ? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), true);
     }
 
     public static void onBlockPlaced(Player player, ServerboundPlayerPlaceBlockPacket packet) {
-        onBlockSet(player, packet.blockHit()? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), PLACE);
+        onBlockSet(player, packet.blockHit() ? packet.blockPos() : null, packet.hitSide(), packet.hitVec(), false);
     }
 
-    public static void onBlockSet(Player player, BlockPos startPos, Direction hitSide, Vec3 hitVec, BuildOp operation) {
+    public static void onBlockSet(Player player, BlockPos startPos, Direction hitSide, Vec3 hitVec, boolean isAttack) {
         var level = player.level();
         var currentState = level.isClientSide ? currentStateClient : currentStateServer;
+        var operation = isAttack
+                ? BuildModeHandler.operationOnAttack(player)
+                : BuildModeHandler.operationOnUse(player);
 
-        // === if currently in other mode, abort ===
-        if (currentState.get(player) != null && (currentState.get(player).operation != operation)) {
+        // === if invalid operation or currently in other mode, abort ===
+        if (
+            operation == null
+            || (
+                    currentState.get(player) != null
+                    && currentState.get(player).operation != operation
+            )
+        ) {
             initialize(player);
             return;
         }
@@ -102,7 +111,6 @@ public class BuildHandler {
         if (commitChange && level.isClientSide) {
             switch(operation) {
                 case BREAK -> BlockPreviewRenderer.getInstance().onBlocksBroken();
-
                 case PLACE -> BlockPreviewRenderer.getInstance().onBlocksPlaced();
                 case SCAN -> BlockPreviewRenderer.getInstance().onBlocksScanned();
             }
@@ -303,15 +311,17 @@ public class BuildHandler {
 
     /**
      * Returns player's current operation.
-     * If in idle state, will return PLACE, unless we are in structure mode and nothing
-     * is scanned - then SCAN.
+     * If in idle state, will return first non-null from the mode's Use operation, its
+     * Attack operation, or PLACE.
      * @param player Player to query
      * @return operation that player is performing
      */
     public static BuildOp currentOperation(Player player) {
         var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
-        var mode = BuildModeHelper.getBuildMode(player);
-        return (currentState.get(player) != null) ? currentState.get(player).operation : PLACE;
+        var defaultOp = BuildModeHandler.operationOnUse(player);
+        if (defaultOp==null) defaultOp = BuildModeHandler.operationOnAttack(player);
+        if (defaultOp==null) defaultOp = PLACE;
+        return (currentState.get(player) != null) ? currentState.get(player).operation : defaultOp;
     }
 
     /**

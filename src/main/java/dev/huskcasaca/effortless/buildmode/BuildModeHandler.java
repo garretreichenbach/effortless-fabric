@@ -31,19 +31,13 @@ public class BuildModeHandler {
      */
     public static boolean onUse(Player player, BlockPos blockPos, BuildOp operation) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
-        var buildMode = BuildModeHelper.getModeSettings(player).buildMode().getInstance();
         var skipRaytrace = modifierSettings.enableQuickReplace() || operation == BuildOp.BREAK;
-        return buildMode.onUse(player, blockPos, skipRaytrace);
+        return buildable(player).onUse(player, blockPos, skipRaytrace);
     }
 
     // get current BlockPos set in intermediate state (tracking mouse)
     public static List<BlockPos> findCoordinates(Player player, BlockPos startPos, boolean skipRaytrace) {
-        List<BlockPos> coordinates = new ArrayList<>();
-
-        var modeSettings = BuildModeHelper.getModeSettings(player);
-        coordinates.addAll(modeSettings.buildMode().getInstance().findCoordinates(player, startPos, skipRaytrace));
-
-        return coordinates;
+        return new ArrayList<>(buildable(player).findCoordinates(player, startPos, skipRaytrace));
     }
 
     /**
@@ -69,11 +63,16 @@ public class BuildModeHandler {
     }
 
     public static void initializeMode(Player player) {
-        BuildModeHelper.getModeSettings(player).buildMode().getInstance().initialize(player);
+        buildable(player).initialize(player);
     }
-
+    public static BuildOp operationOnUse(Player player) {
+        return buildable(player).operationOnUse(player);
+    }
+    public static BuildOp operationOnAttack(Player player) {
+        return buildable(player).operationOnAttack(player);
+    }
     public static boolean isInProgress(Player player) {
-        return BuildModeHelper.getModeSettings(player).buildMode().getInstance().isInProgress(player);
+        return buildable(player).isInProgress(player);
     }
 
     //Find coordinates on a line bound by a plane
@@ -147,5 +146,9 @@ public class BuildModeHandler {
     public static void handleNewPlayer(ServerPlayer player) {
         //Makes sure player has mode settings (if it doesnt it will create it)
         Packets.sendToClient(new ClientboundPlayerBuildModePacket(((EffortlessDataProvider) player).getModeSettings()), player);
+    }
+
+    private static Buildable buildable(Player player) {
+        return BuildModeHelper.getModeSettings(player).buildMode().getInstance();
     }
 }

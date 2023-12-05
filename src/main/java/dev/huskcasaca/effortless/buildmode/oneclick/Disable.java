@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.buildmode.oneclick;
 
+import dev.huskcasaca.effortless.building.BuildOp;
 import dev.huskcasaca.effortless.buildmode.OneClickBuildable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -12,9 +13,10 @@ import java.util.List;
 
 public class Disable extends OneClickBuildable {
     @Override
-    public void initialize(Player player) {
+    public void initialize(Player player) { }
 
-    }
+    public BuildOp operationOnUse(Player player) {return null; }
+    public BuildOp operationOnAttack(Player player) {return null; }
 
     @Override
     public boolean isInProgress(Player player) { return false; }

@@ -23,7 +23,7 @@ public class Single extends OneClickBuildable {
     public boolean isInProgress(Player player) { return false; }
 
     @Override
-    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
+    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace, BuildOp operation) {
         return !findCoordinates(player, blockPos, false).isEmpty();
     }
 

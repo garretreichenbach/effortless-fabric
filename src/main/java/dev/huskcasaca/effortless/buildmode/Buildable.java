@@ -44,7 +44,7 @@ public interface Buildable {
      * @param skipRaytrace
      * @return true if construction is finished, false if not
      */
-    boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace);
+    boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace, BuildOp operation);
 
     //Fired continuously for visualization purposes
     List<BlockPos> findCoordinates(Player player, BlockPos blockPos, boolean skipRaytrace);

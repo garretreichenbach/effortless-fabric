@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.buildmode;
 
+import dev.huskcasaca.effortless.building.BuildOp;
 import dev.huskcasaca.effortless.building.ReachHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -189,7 +190,7 @@ public abstract class ThreeClickBuildable extends MultipleClickBuildable {
     }
 
     @Override
-    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace) {
+    public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace, BuildOp operation) {
         var rightClickTable = player.level().isClientSide ? rightClickTableClient : rightClickTableServer;
         int rightClickNr = rightClickTable.get(player.getUUID());
         rightClickNr++;

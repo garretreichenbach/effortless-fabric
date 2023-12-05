@@ -32,7 +32,7 @@ public class BuildModeHandler {
     public static boolean onUse(Player player, BlockPos blockPos, BuildOp operation) {
         var modifierSettings = BuildModifierHelper.getModifierSettings(player);
         var skipRaytrace = modifierSettings.enableQuickReplace() || operation == BuildOp.BREAK;
-        return buildable(player).onUse(player, blockPos, skipRaytrace);
+        return buildable(player).onUse(player, blockPos, skipRaytrace, operation);
     }
 
     // get current BlockPos set in intermediate state (tracking mouse)
@@ -51,15 +51,20 @@ public class BuildModeHandler {
      * @return map of position to block state.
      */
     public static LinkedHashMap<BlockPos, BlockState> findBlockStates(
-            List<BlockPos> posList, BlockState playersBlockState, BuildOp operation
+            Player player, List<BlockPos> posList, BlockState playersBlockState, BuildOp operation
     ) {
-        var result = new LinkedHashMap<BlockPos, BlockState>(posList.size());
-        var blockState = operation==BuildOp.PLACE ? playersBlockState : Blocks.AIR.defaultBlockState();
-        if (blockState == null) return result;
-        for (var blockPos : posList) {
-            result.put(blockPos, blockState);
+        if (buildable(player) instanceof StructureBuildable structureBuildable) {
+            return structureBuildable.findBlockStates(player, posList, playersBlockState, operation);
         }
-        return result;
+        else {
+            var result = new LinkedHashMap<BlockPos, BlockState>(posList.size());
+            var blockState = operation == BuildOp.PLACE ? playersBlockState : Blocks.AIR.defaultBlockState();
+            if (blockState == null) return result;
+            for (var blockPos : posList) {
+                result.put(blockPos, blockState);
+            }
+            return result;
+        }
     }
 
     public static void initializeMode(Player player) {

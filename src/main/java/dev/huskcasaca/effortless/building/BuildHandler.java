@@ -277,7 +277,7 @@ public class BuildHandler {
             playersBlockState = getBlockStateWhenPlaced(player, block, posList.get(0), facing, hitVec);
         }
 
-        var blockStates = BuildModeHandler.findBlockStates(posList, playersBlockState, operation);
+        var blockStates = BuildModeHandler.findBlockStates(player, posList, playersBlockState, operation);
         var modBlockStates = BuildModifierHandler.findBlockStates(player, blockStates);
         // TODO Adjust blockstates for torches and ladders etc to place on a valid side
         return modBlockStates;

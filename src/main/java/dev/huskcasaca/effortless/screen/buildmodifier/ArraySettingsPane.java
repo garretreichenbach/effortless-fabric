@@ -42,13 +42,11 @@ public class ArraySettingsPane extends ExpandableScrollEntry {
         var modifierSettings = BuildModifierHelper.getModifierSettings(mc.player);
         var arraySettings = (modifierSettings != null)? modifierSettings.arraySettings() : new Array.ArraySettings();
         int y = top;
-        buttonArrayEnabled = new Checkbox(left - 25 + 8, y, 20, 20, Component.literal(""), arraySettings.enabled(), false) {
-            @Override
-            public void onPress() {
-                super.onPress();
-                setCollapsed(!buttonArrayEnabled.selected());
-            }
-        };
+        buttonArrayEnabled = Checkbox.builder(Component.literal(""),font)
+                .pos(left - 25 + 8, y)
+                .selected(arraySettings.enabled())
+                .onValueChange((checkbox, val) -> {setCollapsed(!val);})
+                .build();
         renderables.add(buttonArrayEnabled);
 
         y = top + 20;

@@ -50,15 +50,11 @@ public class MirrorSettingsPane extends ExpandableScrollEntry {
         var modifierSettings = BuildModifierHelper.getModifierSettings(mc.player);
         var mirrorSettings = (modifierSettings!=null) ? modifierSettings.mirrorSettings(): new Mirror.MirrorSettings();
         int y = top - 2;
-        buttonMirrorEnabled = new Checkbox(
-                left - 25 + 8, y, 20, 20, Component.literal(""), mirrorSettings.enabled(), false
-        ) {
-            @Override
-            public void onPress() {
-                super.onPress();
-                setCollapsed(!buttonMirrorEnabled.selected());
-            }
-        };
+        buttonMirrorEnabled = Checkbox.builder(Component.literal(""), font)
+                .pos(left-25+6, y)
+                .selected(mirrorSettings.enabled())
+                .onValueChange((checkbox, val) -> { setCollapsed(!val); } )
+                .build();
         renderables.add(buttonMirrorEnabled);
 
         y = top + 20;
@@ -79,22 +75,22 @@ public class MirrorSettingsPane extends ExpandableScrollEntry {
         mirrorNumberFieldList.add(textMirrorPosZ);
 
         y = top + 44;
-        buttonMirrorX = new Checkbox(
-                left + Dimen.BUTTON_OFFSET_X1 , y, 20, 20,
-                Component.literal(" X"), mirrorSettings.mirrorX()
-        );
+        buttonMirrorX = Checkbox.builder(Component.literal(" X"), font)
+            .pos(left + Dimen.BUTTON_OFFSET_X1 , y)
+            .selected(mirrorSettings.mirrorX())
+            .build();
         mirrorButtonList.add(buttonMirrorX);
 
-        buttonMirrorY = new Checkbox(
-                left + Dimen.BUTTON_OFFSET_X1  + 42, y, 20, 20,
-                Component.literal(" Y") , mirrorSettings.mirrorY()
-        );
+        buttonMirrorY = Checkbox.builder(Component.literal(" Y"), font)
+                .pos(left + Dimen.BUTTON_OFFSET_X1  + 42, y)
+                .selected(mirrorSettings.mirrorY())
+                .build();
         mirrorButtonList.add(buttonMirrorY);
 
-        buttonMirrorZ = new Checkbox(
-                left + Dimen.BUTTON_OFFSET_X1  + 42 * 2, y, 20, 20,
-                Component.literal(" Z"), mirrorSettings.mirrorZ()
-        );
+        buttonMirrorZ = Checkbox.builder(Component.literal(" Z"), font)
+                .pos(left + Dimen.BUTTON_OFFSET_X1  + 42 * 2, y)
+                .selected(mirrorSettings.mirrorZ())
+                .build();
         mirrorButtonList.add(buttonMirrorZ);
 
         y = top + 47;

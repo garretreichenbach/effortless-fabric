@@ -24,7 +24,9 @@ public enum BuildMode {
 
     CIRCLE("circle", new Circle(), Category.CIRCULAR, Option.CIRCLE_START, Option.PLANE_FILLING, Option.ORIENTATION),
     CYLINDER("cylinder", new Cylinder(), Category.CIRCULAR, Option.CIRCLE_START, Option.PLANE_FILLING, Option.ORIENTATION),
-    SPHERE("sphere", new Sphere(), Category.CIRCULAR, Option.CIRCLE_START, Option.PLANE_FILLING, Option.ORIENTATION);
+    SPHERE("sphere", new Sphere(), Category.CIRCULAR, Option.CIRCLE_START, Option.PLANE_FILLING, Option.ORIENTATION),
+
+    STRUCTURE("structure", new StructureBuildable(), Category.BASIC);
 
 //    PYRAMID("pyramid", new Pyramid(), Category.ROOF);
 //    CONE("cone", new Cone(), BuildCategory.ROOF);
@@ -70,6 +72,8 @@ public enum BuildMode {
             case CIRCLE -> "circle";
             case CYLINDER -> "cylinder";
             case SPHERE -> "sphere";
+
+            case STRUCTURE -> "structure";
 
 //            case PYRAMID -> "pyramid";
         };

@@ -9,8 +9,6 @@ public enum BuildAction {
     CYCLE_MIRROR("cycle_mirror"),
     MAGNET("magnet"),
     MODIFIER("modifier"),
-    // TODO: remove OPEN_PLAYER_SETTINGS
-    OPEN_PLAYER_SETTINGS("open_player_settings"),
     SETTINGS("settings"),
 
     SPEED_NORMAL("speed_normal"),
@@ -50,7 +48,6 @@ public enum BuildAction {
             case CYCLE_MIRROR -> "cycle_mirror";
             case MAGNET -> "magnet";
             case MODIFIER -> "modifier";
-            case OPEN_PLAYER_SETTINGS -> "openPlayerSettings";
             case SETTINGS -> "settings";
             case SPEED_NORMAL -> "normalSpeed";
             case SPEED_FAST -> "fastSpeed";

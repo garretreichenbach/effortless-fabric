@@ -11,6 +11,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -24,8 +25,10 @@ public class RenderUtils {
 
     private static final RandomSource RAND = RandomSource.create();
 
-    private static final Vec3 ERROR_OUTLINE_COLOR = new Vec3(1, 0, 0);
-    private static final Vec3 DEFAULT_OUTLINE_COLOR = new Vec3(1, 1, 1);
+    public static final Vec3 ERROR_OUTLINE_COLOR = new Vec3(1, 0, 0);
+    public static final Vec3 BREAK_OUTLINE_COLOR = new Vec3(1, 0, 0);
+    public static final Vec3 SCAN_OUTLINE_COLOR = new Vec3(0.5, 1, 0);
+    public static final Vec3 PLACE_OUTLINE_COLOR = new Vec3(1, 1, 1);
 
     public static VertexConsumer beginLines(MultiBufferSource.BufferSource renderTypeBuffer) {
         return renderTypeBuffer.getBuffer(BuildRenderType.lines());
@@ -67,8 +70,9 @@ public class RenderUtils {
         poseStack.popPose();
     }
 
-    public static void renderBlockOutlines(PoseStack poseStack, MultiBufferSource.BufferSource renderTypeBuffer, BlockRenderDispatcher dispatcher, BlockPos blockPos, BlockState blockState, float dissolve, BlockPos firstPos, BlockPos secondPos, boolean red) {
+    public static void renderBlockOutlines(PoseStack poseStack, MultiBufferSource.BufferSource renderTypeBuffer, BlockPos blockPos, BlockState blockState, Vec3 color) {
         if (blockState == null) return;
+        var level = Minecraft.getInstance().level;
         poseStack.pushPose();
 
         //Begin block preview rendering
@@ -76,9 +80,10 @@ public class RenderUtils {
 
         RenderSystem.lineWidth(2f);
 
-        var voxelShape = blockState.getShape(Minecraft.getInstance().level, blockPos);
+        var voxelShape = blockState.isAir()
+                ? Blocks.STONE.defaultBlockState().getShape(level, blockPos)
+                : blockState.getShape(level, blockPos);
         var camera = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        var color = red ? ERROR_OUTLINE_COLOR : DEFAULT_OUTLINE_COLOR;
         renderVoxelShape(poseStack, buffer, voxelShape, blockPos.getX() - camera.x(), blockPos.getY() - camera.y(), blockPos.getZ() - camera.z(), (float) color.x(), (float) color.y(), (float) color.z(), 1f);
 
         renderTypeBuffer.endBatch();

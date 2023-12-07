@@ -99,10 +99,6 @@ public class BuildActionHandler {
                 if (player.level().isClientSide)
                     EffortlessClient.openModifierSettings();
                 break;
-            case OPEN_PLAYER_SETTINGS:
-                if (player.level().isClientSide)
-                    EffortlessClient.openPlayerSettings();
-                break;
             case SETTINGS:
                 if (player.level().isClientSide)
                     EffortlessClient.openSettings();
@@ -162,8 +158,7 @@ public class BuildActionHandler {
         if (player.level().isClientSide &&
                 action != BuildAction.REPLACE &&
                 action != BuildAction.CYCLE_MIRROR &&
-                action != BuildAction.MODIFIER &&
-                action != BuildAction.OPEN_PLAYER_SETTINGS) {
+                action != BuildAction.MODIFIER) {
 
             Effortless.logTranslate(player, "", action.getNameKey(), "", true);
         }

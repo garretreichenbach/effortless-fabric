@@ -22,4 +22,8 @@ public record BlockSet(
             secondPos
         );
     }
+
+    public int size() {
+        return coordinates.size();
+    }
 }

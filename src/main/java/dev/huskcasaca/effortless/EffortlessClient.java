@@ -19,7 +19,6 @@ import dev.huskcasaca.effortless.network.protocol.player.*;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.render.BuildRenderType;
 import dev.huskcasaca.effortless.render.ModifierRenderer;
-import dev.huskcasaca.effortless.screen.buildmode.PlayerSettingsScreen;
 import dev.huskcasaca.effortless.screen.buildmode.RadialMenuScreen;
 import dev.huskcasaca.effortless.screen.buildmodifier.ModifierSettingsScreen;
 import dev.huskcasaca.effortless.screen.config.EffortlessConfigScreen;
@@ -171,12 +170,6 @@ public class EffortlessClient implements ClientModInitializer {
             mc.setScreen(null);
             mc.setScreen(new ModifierSettingsScreen());
         }
-    }
-
-    public static void openPlayerSettings() {
-        Minecraft mc = Minecraft.getInstance();
-        mc.setScreen(new PlayerSettingsScreen());
-
     }
 
     public static void openSettings() {

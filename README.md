@@ -88,6 +88,12 @@ If any of these bothers you particularly, please open a github issue (or Pull re
   knowhow.
 
 ## Changelog
+### 1.7.1 (Fork only)
+
+* Port to Minecraft 1.20.3
+* Do not reset sounds when opening menu screen (Issue #1)
+* further internal changes
+
 ### 1.7.0 (Fork only)
  
 * Fix block state changing while "dragging" construction area. Blocks will now be placed

@@ -1,5 +1,6 @@
 package dev.huskcasaca.effortless.buildmode;
 
+import dev.huskcasaca.effortless.building.BuildOp;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
@@ -15,6 +16,9 @@ public abstract class MultipleClickBuildable implements Buildable {
     protected Dictionary<UUID, Integer> rightClickTableClient = new Hashtable<>();
     protected Dictionary<UUID, Integer> rightClickTableServer = new Hashtable<>();
     protected Dictionary<UUID, BlockPos> firstPosTable = new Hashtable<>();
+
+    public BuildOp operationOnUse(Player player) {return BuildOp.PLACE; }
+    public BuildOp operationOnAttack(Player player) {return BuildOp.BREAK; }
 
     @Override
     public void initialize(Player player) {

@@ -51,11 +51,15 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
         var radialMirrorSettings = (modifierSettings != null) ? modifierSettings.radialMirrorSettings(): new RadialMirror.RadialMirrorSettings();
 
         int y = top - 2;
-        buttonRadialMirrorEnabled = Checkbox.builder(Component.literal(""), font)
-                .pos(left - 25 + 8, y)
-                .selected(radialMirrorSettings.enabled())
-                .onValueChange((checkbox, val) -> {setCollapsed(!val);})
-                .build();
+        buttonRadialMirrorEnabled = new Checkbox(
+                left - 25 + 8, y, 20, 20,
+                Component.literal(""), radialMirrorSettings.enabled(), false) {
+            @Override
+            public void onPress() {
+                super.onPress();
+                setCollapsed(!buttonRadialMirrorEnabled.selected());
+            }
+        };
         renderables.add(buttonRadialMirrorEnabled);
 
         y = top + 28;
@@ -134,11 +138,10 @@ public class RadialMirrorSettingsPane extends ExpandableScrollEntry {
         radialMirrorIconButtonList.add(buttonDrawPlanes);
 
         y = top + 86;
-        buttonRadialMirrorAlternate = Checkbox
-                .builder(Component.literal(" Alternate"), font)
-                .pos(left + Dimen.SECTION_OFFSET_X0, y)
-                .selected(radialMirrorSettings.alternate())
-                .build();
+        buttonRadialMirrorAlternate = new Checkbox(
+                left + Dimen.SECTION_OFFSET_X0, y, 20, 20,
+                Component.literal(" Alternate"), radialMirrorSettings.alternate()
+        );
         radialMirrorButtonList.add(buttonRadialMirrorAlternate);
 
         textRadialMirrorPosX.setNumber(radialMirrorSettings.position().x);

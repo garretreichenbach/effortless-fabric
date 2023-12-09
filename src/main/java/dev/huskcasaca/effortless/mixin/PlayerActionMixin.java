@@ -135,7 +135,6 @@ public abstract class PlayerActionMixin {
             // make a copy, since the item may be gone when we are done with placing (Survival, used up)
             var itemStack = player.getItemInHand(interactionHand).copy();
             HitResult lookingAt = getLookingAt(player);
-            if (!(itemStack.getItem() instanceof BlockItem)) return;
             if (lookingAt.getType() == HitResult.Type.BLOCK) {
                 //find position in distance
                 BlockHitResult blockLookingAt = (BlockHitResult) lookingAt;

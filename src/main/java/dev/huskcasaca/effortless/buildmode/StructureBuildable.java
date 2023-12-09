@@ -91,13 +91,65 @@ public class StructureBuildable implements Buildable{
         }
         // Return blocks of the structure offset by given blockPos
         if (startPos == null) return result;
+        var offset = getPlaceOffset(player, startPos, facing, structure.size);
 
         for (var entry: structure.blockStates.entrySet()) {
-            var worldPos = entry.getKey().offset(startPos);
+            var worldPos = entry.getKey().offset(offset);
             var blockState = entry.getValue();
             if (blockState != null && !blockState.isAir()) result.put(worldPos, blockState);
         }
         return result;
+    }
+
+    /**
+     * Find alignment of structure, i.e. where it should be placed in the world
+     * startPos will be one of the corners of the placement;
+     * player's look direction and targeted face affect how it will be placed:
+     * If player is looking on the ground (facing = UP):
+     * "leftward" of the cardinal direction, structure is right-aligned,
+     * "rightward" of the cardinal direction, structure is left-aligned.
+     * If looking at a vertical face, align against that face.
+     * If looking at an upside-down face (facing=DOWN), ground rules apply AND structure is top-aligned.
+     * @param player The player
+     * @param startPos build position (might be offset to the hit position)
+     * @param facing direction of targeted face
+     * @param structSize size of structure to build
+     * @return Offset position for placing
+     */
+    private static BlockPos getPlaceOffset(
+            Player player, BlockPos startPos, Direction facing, Vec3i structSize
+    ) {
+        var offset = startPos;
+        var direction = player.getDirection();
+        // align so that startPos is at the right, viewed from player?
+        boolean alignRight = (player.getYRot() % 90.0 + 90.0) % 90.0 >= 45.0;
+        // if targeting vertical face, force
+        if (facing == direction.getClockWise()) alignRight = false;
+        if (facing == direction.getCounterClockWise()) alignRight = true;
+        // align away from player?
+        boolean alignAway = (facing != direction.getOpposite());
+
+        // unify north/south and east/west cases.
+        // i.e. think of the flags as if looking south or east.
+        if (direction == Direction.NORTH || direction == Direction.WEST) {
+            alignRight = !alignRight;
+            alignAway = !alignAway;
+        }
+        switch (direction) {
+            case NORTH, SOUTH -> {
+                if (!alignRight) offset = offset.relative(Direction.Axis.X, -structSize.getX() + 1);
+                if (!alignAway) offset = offset.relative(Direction.Axis.Z, -structSize.getZ() + 1);
+            }
+            case EAST, WEST -> {
+                if (alignRight) offset = offset.relative(Direction.Axis.Z, -structSize.getZ() + 1);
+                if (!alignAway) offset = offset.relative(Direction.Axis.X, -structSize.getX() + 1);
+            }
+            default -> {}
+        }
+        // Upside-down face? place below
+        if (facing == Direction.DOWN)
+            offset = offset.relative(Direction.Axis.Y, -structSize.getY() + 1);
+        return offset;
     }
 
     protected EffortlessStructure performScan(Player player, List<BlockPos> coordinates) {

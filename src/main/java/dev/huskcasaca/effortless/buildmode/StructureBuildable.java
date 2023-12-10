@@ -1,26 +1,25 @@
 package dev.huskcasaca.effortless.buildmode;
 
-import dev.huskcasaca.effortless.Effortless;
 import dev.huskcasaca.effortless.building.BuildOp;
 import dev.huskcasaca.effortless.buildmode.threeclick.Cube;
 import dev.huskcasaca.effortless.entity.player.EffortlessStructure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
-import net.minecraft.network.protocol.game.ClientboundMoveEntityPacket;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.NotImplementedException;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 public class StructureBuildable implements Buildable{
 
-    protected Dictionary<Player, EffortlessStructure> structuresServer = new Hashtable<>();
-    protected Dictionary<Player, EffortlessStructure> structuresClient = new Hashtable<>();
+    protected Dictionary<Player, EffortlessStructure[]> structuresServer = new Hashtable<>();
+    protected Dictionary<Player, EffortlessStructure[]> structuresClient = new Hashtable<>();
 
     // Use cube mode internally to provide the scan action.
     final static Cube cube = (Cube) BuildMode.CUBE.getInstance();
@@ -34,9 +33,9 @@ public class StructureBuildable implements Buildable{
 
     @Override
     public BuildOp operationOnUse(Player player) {
-        var structures = player.level().isClientSide ? structuresClient : structuresServer;
+        var structure = getCurrentStructure(player);
         // PLACE if a block is saved, otherwise null.
-        if (structures.get(player) == null) return BuildOp.SCAN;
+        if (structure == null) return BuildOp.SCAN;
         return BuildOp.PLACE;
     }
     @Override
@@ -49,21 +48,26 @@ public class StructureBuildable implements Buildable{
     @Override
     public boolean onUse(Player player, BlockPos blockPos, boolean skipRaytrace, BuildOp operation) {
         var structures = player.level().isClientSide ? structuresClient : structuresServer;
+        if (structures.get(player) == null) structures.put(player, new EffortlessStructure[9]);
+        var playerStructures = structures.get(player);
+        int slot = player.getInventory().selected;
+        var structure = playerStructures[slot];
+
         switch (operation) {
             // If operation == PLACE, return true if something is in buffer
             case PLACE -> {
-                return structures.get(player) != null;
+                return structure!=null;
             }
             case BREAK -> {
                 // discard scan, return false (nothing actually broken).
-                structures.remove(player);
+                playerStructures[slot] = null;
                 return false;
             }
             case SCAN -> {
                 // Scan
                 var coordinates = cube.findCoordinates(player, blockPos, skipRaytrace);
                 if (cube.onUse(player, blockPos, skipRaytrace, BuildOp.BREAK)) {
-                    structures.put(player, performScan(player, coordinates));
+                    playerStructures[slot] = performScan(player, coordinates);
                     return true;
                 }
                 else return false;
@@ -179,9 +183,8 @@ public class StructureBuildable implements Buildable{
     }
 
     protected EffortlessStructure getRotatedStructure(Player player) {
-        var structures = player.level().isClientSide ? structuresClient : structuresServer;
-        var structure = structures.get(player);
-        if (structure==null) return null;
+        var structure = getCurrentStructure(player);
+        if (structure == null) return null;
 
         var facing = player.getDirection();
         switch (facing) {
@@ -190,5 +193,13 @@ public class StructureBuildable implements Buildable{
             case WEST -> { return structure.getRotated(Rotation.CLOCKWISE_90); }
             default -> { return structure; }
         }
+    }
+
+    @Nullable
+    protected EffortlessStructure getCurrentStructure(Player player) {
+        var structures = player.level().isClientSide ? structuresClient : structuresServer;
+        var playerStructures = structures.get(player);
+        if (playerStructures==null) return null;
+        return playerStructures[player.getInventory().selected];
     }
 }

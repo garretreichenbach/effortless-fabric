@@ -143,10 +143,12 @@ public abstract class PlayerActionMixin {
                 Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket(blockLookingAt));
                 //play sound if further than normal
                 if ((blockLookingAt.getLocation().subtract(player.getEyePosition(1f))).lengthSqr() > 25f) {
-                    var state = ((BlockItem) itemStack.getItem()).getBlock().defaultBlockState();
-                    var soundType = state.getBlock().getSoundType(state);
-                    player.level().playSound(player, player.blockPosition(), soundType.getPlaceSound(), SoundSource.BLOCKS,
-                            0.4f, soundType.getPitch());
+                    if (itemStack.getItem() instanceof BlockItem item) {
+                        var state = item.getBlock().defaultBlockState();
+                        var soundType = state.getBlock().getSoundType(state);
+                        player.level().playSound(player, player.blockPosition(), soundType.getPlaceSound(), SoundSource.BLOCKS,
+                                0.4f, soundType.getPitch());
+                    }
                     player.swing(interactionHand);
                 }
             } else {

@@ -224,4 +224,13 @@ public class StructureBuildable implements Buildable{
         if (playerStructures==null) return null;
         return playerStructures[player.getInventory().selected];
     }
+
+    public List<Boolean> slotsOccupied(Player player) {
+        var structures = player.level().isClientSide ? structuresClient : structuresServer;
+        var playerStructures = structures.get(player);
+        if (playerStructures==null) {
+            return Collections.nCopies(9, false);
+        }
+        return Arrays.stream(playerStructures).map(Objects::nonNull).toList();
+    }
 }

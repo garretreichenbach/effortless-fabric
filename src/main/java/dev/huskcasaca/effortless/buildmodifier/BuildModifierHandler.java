@@ -63,24 +63,24 @@ public class BuildModifierHandler {
             Player player, Map<BlockPos, BlockState>blockStates
     ) {
         // Make a copy to modify inplace
-        blockStates = new LinkedHashMap<>(blockStates);
+        var newBlockStates = new LinkedHashMap<>(blockStates);
         for (var entry : blockStates.entrySet()) {
             var blockPos = entry.getKey();
             var blockState = entry.getValue();
 
             var arrayBlockStates = Array.findBlockStates(player, blockPos, blockState);
-            blockStates.putAll(arrayBlockStates);
-            blockStates.putAll(Mirror.findBlockStates(player, blockPos, blockState));
-            blockStates.putAll(RadialMirror.findBlockStates(player, blockPos, blockState));
+            newBlockStates.putAll(arrayBlockStates);
+            newBlockStates.putAll(Mirror.findBlockStates(player, blockPos, blockState));
+            newBlockStates.putAll(RadialMirror.findBlockStates(player, blockPos, blockState));
             //add mirror for each array coordinate
             for (BlockPos coordinate : Array.findCoordinates(player, blockPos)) {
                 var blockState1 = arrayBlockStates.get(coordinate);
                 if (blockState1 == null) continue;
-                blockStates.putAll(Mirror.findBlockStates(player, coordinate, blockState1));
-                blockStates.putAll(RadialMirror.findBlockStates(player, coordinate, blockState1));
+                newBlockStates.putAll(Mirror.findBlockStates(player, coordinate, blockState1));
+                newBlockStates.putAll(RadialMirror.findBlockStates(player, coordinate, blockState1));
             }
         }
-        return blockStates;
+        return newBlockStates;
     }
 
     public static boolean isEnabled(ModifierSettings modifierSettings, BlockPos startPos) {

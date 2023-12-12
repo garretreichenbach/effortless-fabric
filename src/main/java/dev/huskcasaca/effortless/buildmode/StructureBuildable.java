@@ -126,10 +126,11 @@ public class StructureBuildable implements Buildable{
         var offset = startPos;
         var direction = player.getDirection();
         // align so that startPos is at the right, viewed from player?
-        boolean alignRight = (player.getYRot() % 90.0 + 90.0) % 90.0 >= 45.0;
+        boolean alignRight = (player.getYRot() % 90.0 + 90.0) % 90.0 < 45.0;
         // if targeting vertical face, force
-        if (facing == direction.getClockWise()) alignRight = false;
-        if (facing == direction.getCounterClockWise()) alignRight = true;
+        boolean forceAlignRight = (
+            facing == direction.getClockWise() || facing == direction.getCounterClockWise()
+        );
         // align away from player?
         boolean alignAway = (facing != direction.getOpposite());
 
@@ -141,11 +142,32 @@ public class StructureBuildable implements Buildable{
         }
         switch (direction) {
             case NORTH, SOUTH -> {
-                if (!alignRight) offset = offset.relative(Direction.Axis.X, -structSize.getX() + 1);
+                // Size of struct perpendicular to player's view direction.
+                int perpStructSize = structSize.getX();
+                // X coord where we want to place structure
+                int perpOffset = (int)Math.floor(player.getX() - startPos.getX() - perpStructSize*0.5);
+                if (forceAlignRight)
+                    perpOffset = alignRight ? 0 : -perpStructSize+1;
+                else {
+                    // ensure that structure covers startpos
+                    perpOffset = Math.min(perpOffset, 0);
+                    perpOffset = Math.max(perpOffset, -perpStructSize + 1);
+                }
+                offset = offset.relative(Direction.Axis.X, perpOffset);
                 if (!alignAway) offset = offset.relative(Direction.Axis.Z, -structSize.getZ() + 1);
             }
             case EAST, WEST -> {
-                if (alignRight) offset = offset.relative(Direction.Axis.Z, -structSize.getZ() + 1);
+                // see comments above
+                int perpStructSize = structSize.getZ();
+                int perpOffset = (int)Math.floor(player.getZ() - startPos.getZ() - perpStructSize*0.5);
+                if (forceAlignRight)
+                    perpOffset = alignRight ? -perpStructSize+1 : 0;
+                else {
+                    // ensure that structure covers startpos
+                    perpOffset = Math.min(perpOffset, 0);
+                    perpOffset = Math.max(perpOffset, -perpStructSize + 1);
+                }
+                offset = offset.relative(Direction.Axis.Z, perpOffset);
                 if (!alignAway) offset = offset.relative(Direction.Axis.X, -structSize.getX() + 1);
             }
             default -> {}

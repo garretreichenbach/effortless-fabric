@@ -107,7 +107,7 @@ If any of these bothers you particularly, please open a github issue (or Pull re
   knowhow.
 
 ## Changelog
-### Upcoming (Fork only)
+### 1.7.2 (Fork only)
 
 * **Add structure-copy mode.** Please consider it "beta" for now. I'm still test-driving it
   to find out how to make handling most convenient for all use cases.

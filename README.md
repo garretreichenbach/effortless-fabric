@@ -15,15 +15,17 @@ reach upgrade items to make it a pure vanilla compat one.
 
 ## Screenshots
 ### Building Menu
-![Radial Menu](screenshots/radial_menu.png)
-### Line Mode
-![Line Mode](screenshots/line_mode.png)
-### Filled Wall Mode
-![Filled Wall Mode](screenshots/filled_wall_mode.png)
-### Filled Floor Mode
-![Filled Floor Mode](screenshots/filled_floor_mode.png)
-### Filled Cube Mode
-![Filled Cube Mode](screenshots/filled_cube_mode.png)
+
+<img alt="Radial Menu" src="screenshots/radial_menu.png" style="width:100%;max-width:400pt;"/>
+
+### Building example: Filled Wall Mode
+
+<img alt="Filled Wall mode" src="screenshots/filled_wall_mode.png" style="width:100%;max-width:400pt;"/>
+
+### Scanning and placing structure
+
+<img alt="Scanning structure" src="screenshots/structure_scanning.png" style="width:100%;max-width:400pt;"/>
+<img alt="Placing structure" src="screenshots/structure_placing.png" style="width:100%;max-width:400pt;"/>
 
 ## Building
 
@@ -31,12 +33,29 @@ Hold ALT key to switch build modes in the radial panel. There are buttons for un
 modifier settings and replace modes on the left. The options for each build mode (like a
 filled vs hollow wall) are on the right.
 
+Modes require between one and three clicks to mark out the corner points of the structure.
+
 In Single mode, you can place blocks beneath your feet by looking straight downward. Thus
 you can start construction in air or water.
 
 Use R key to toggle replace mode.
 
 Use M key to quickly cycle between X/Z Mirror modes (centered on player's position).
+
+### Remarks about Structure mode
+
+Structure mode (top-left in the menu) is used to copy and paste blocks.
+
+To "scan" blocks to copy, mark out the corner points with right mouse click, as in Cube
+mode. Depending on the Replace setting, Scan will start either on or next to the focused
+block. This is so that constructions without blocks in the corners can be scanned.
+
+The scanned structure is associated to a Hotbar slot, meaning that you can scan up to 9
+different structures. Click left (Attack) to erase a slot. Structures are also forgotten
+once you exit the game.
+
+Structures are placed with a single click. Rotation and placement depend on Player's
+position and view direction.
 
 ### Build Modes
 
@@ -52,6 +71,7 @@ Use M key to quickly cycle between X/Z Mirror modes (centered on player's positi
 - **Circle**: Place blocks in a circle (ellipse)
 - **Cylinder**: Place a cylindrical shape like a tower
 - **Sphere**: Place a spheroid made of cubes
+- **Structure**: Copy and paste blocks from the world
 
 ### Build Modifiers
 
@@ -68,8 +88,6 @@ Use M key to quickly cycle between X/Z Mirror modes (centered on player's positi
 ## Roadmap
 ### Future plans as of 1.7.0
 
-- Implement a "copy-paste" mode: scan a construction (like Cube mode), then 
-place copies of it interactively.
 - Place / "break" water blocks by holding water bucket
 - Stair mode: Place with 45° bevel e.g. for roof corners
 - Improve slab handling, particularly allow building of slab stairs
@@ -78,6 +96,7 @@ place copies of it interactively.
 
 If any of these bothers you particularly, please open a github issue (or Pull request :-))
 
+* Structures cannot be placed mirrored
 * Placing torches or other attachable items is not well-tested and most probably buggy.
 * Cannot place double-slabs, and making a stair of slabs doesn't work as one would
   probably expect.
@@ -88,6 +107,13 @@ If any of these bothers you particularly, please open a github issue (or Pull re
   knowhow.
 
 ## Changelog
+### Upcoming (Fork only)
+
+* **Add structure-copy mode.** Please consider it "beta" for now. I'm still test-driving it
+  to find out how to make handling most convenient for all use cases.
+* Fix occasional crash when using modifiers (regression introduced by refactoring)
+* Fix calculation of placement size (regression introduced by refactoring)
+
 ### 1.7.1 (Fork only)
 
 * Port to Minecraft 1.20.3

@@ -24,6 +24,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -200,19 +201,14 @@ public class BuildHandler {
         var operation = currentOperation(player);
 
         //get coordinates
-        var skipRaytrace = (operation == BREAK) || BuildModifierHelper.isQuickReplace(player);
-        var startCoordinates = BuildModeHandler.findCoordinates(player, blockPos, skipRaytrace);
-
-        // Don't know where to place anything - return valid but empty blockset.
-        if (startCoordinates.isEmpty()) return new BlockSet(
-                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), BlockPos.ZERO, BlockPos.ZERO
+        var findBlockStateResult = findBlockStates(player, blockPos, hitVec, hitSide);
+        Map<BlockPos, BlockState> blockStateMap = findBlockStateResult.blockStates;
+        // Don't know where to place anything. Return valid but empty blockset.
+        if (blockStateMap.isEmpty()) return new BlockSet(
+                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+                findBlockStateResult.firstPos, findBlockStateResult.secondPos
         );
-
-        //Remember first and last point for the shader
-        var firstPos = startCoordinates.get(0);
-        var secondPos = startCoordinates.get(startCoordinates.size() - 1);
-
-        var newCoordinates = BuildModifierHandler.findCoordinates(player, startCoordinates);
+        var newCoordinates = blockStateMap.keySet().stream().toList();
         int N = newCoordinates.size();
 
         //Get blockstates (old and new)
@@ -221,8 +217,6 @@ public class BuildHandler {
         var isReplace = (operation != PLACE || BuildModifierHelper.isReplace(player));
         var filter = new ArrayList<>(newCoordinates.stream().map(pos -> SurvivalHelper.canSetBlock(player, pos, isReplace)).toList());
 
-        Map<BlockPos, BlockState> blockStateMap;
-        blockStateMap = findBlockStates(player, startCoordinates, hitVec, hitSide);
         // do not place at position i if not in blockStateMap or if already the same block.
         // FIXME: does not consider actual state, e.g. orientation of stairs.
         if (operation != SCAN) {
@@ -257,12 +251,29 @@ public class BuildHandler {
             }
             if (--limit <= 0) break;
         }
-        return new BlockSet(filtCoordinates, filtPreviousBlockStates, filtBlockStates, firstPos, secondPos);
+        return new BlockSet(
+                filtCoordinates, filtPreviousBlockStates, filtBlockStates,
+                findBlockStateResult.firstPos, findBlockStateResult.secondPos
+        );
     }
 
-    public static Map<BlockPos, BlockState> findBlockStates(Player player, List<BlockPos> posList, Vec3 hitVec, Direction facing) {
+    private record FindBlockStateResult (
+        Map<BlockPos, BlockState> blockStates,
+        BlockPos firstPos,
+        BlockPos secondPos
+    ) {}
+
+    /**
+     * Find the coordinates and associated blockstates that the Buildable would like
+     * to place.
+     * @param player The player
+     * @param blockPos Targeted block
+     * @param hitVec Where block was intersected
+     * @param facing which face of block was hit
+     * @return (Ordered) map of blockpos to new state
+     */
+    private static FindBlockStateResult findBlockStates(Player player, BlockPos blockPos, Vec3 hitVec, Direction facing) {
         var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
-        if (posList.isEmpty()) return new LinkedHashMap<>();
         var operation = currentOperation(player);
 
         BlockState playersBlockState;
@@ -273,14 +284,22 @@ public class BuildHandler {
         else {
             // Idly looking around, use current data.
             var block = getPlayersBlock(player);
-            //hitVec = new Vec3(Math.abs(hitVec.x - ((int) hitVec.x)), Math.abs(hitVec.y - ((int) hitVec.y)), Math.abs(hitVec.z - ((int) hitVec.z)));
-            playersBlockState = getBlockStateWhenPlaced(player, block, posList.get(0), facing, hitVec);
+            playersBlockState = getBlockStateWhenPlaced(player, block, blockPos, facing, hitVec);
         }
 
-        var blockStates = BuildModeHandler.findBlockStates(player, posList, playersBlockState, operation);
+        var blockStates = BuildModeHandler.findBlockStates(
+                player, blockPos, hitVec, facing, playersBlockState, operation
+        );
+        if (blockStates.isEmpty()) return new FindBlockStateResult(blockStates, blockPos, blockPos);
+        var box = BoundingBox.encapsulatingPositions(blockStates.keySet()).orElseThrow();
+
         var modBlockStates = BuildModifierHandler.findBlockStates(player, blockStates);
         // TODO Adjust blockstates for torches and ladders etc to place on a valid side
-        return modBlockStates;
+        return new FindBlockStateResult(
+                modBlockStates,
+                new BlockPos(box.minX(), box.minY(), box.minZ()),
+                new BlockPos(box.maxX(), box.maxY(), box.maxZ())
+        );
     }
 
     public static Block getPlayersBlock(Player player) {

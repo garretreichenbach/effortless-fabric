@@ -118,12 +118,15 @@ public class BlockPreviewRenderer {
         if (placeData.isEmpty()) return;
 
         var blockLeft = new HashMap<>(blocksLeft);
+        boolean allAir = placeData.stream().allMatch(blockData -> blockData.blockState.isAir());
 
         for (BlockPosState blockPosState : placeData) {
             var blockPos = blockPosState.coordinate;
             var blockState = blockPosState.blockState;
             var canBreak = blockPosState.canBreak;
             var canPlace = blockPosState.canPlace;
+            // Only "render" air blocks if there is nothing else to see.
+            if (blockState.isAir() && !allAir) continue;
 
             switch (operation) {
                 case BREAK -> {

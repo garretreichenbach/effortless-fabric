@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.loom)
 }
 
-version = "1.7.2dev0"
+version = "1.7.2"
 group = "dev.huskcasaca"
 
 base {

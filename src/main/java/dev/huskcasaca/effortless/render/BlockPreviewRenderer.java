@@ -367,28 +367,14 @@ public class BlockPreviewRenderer {
             return;
         }
         //Display block count and dimensions in actionbar
-        //Find min and max values (not simply firstPos and secondPos because that doesn't work with circles)
-        int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE;
-        int minY = Integer.MAX_VALUE, maxY = Integer.MIN_VALUE;
-        int minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
-        // FIXME: previously, non-Modifier'd coordinates were used here
-        for (var pos : newCoordinates) {
-            if (pos.getX() < minX) minX = pos.getX();
-            if (pos.getX() > maxX) maxX = pos.getX();
-            if (pos.getY() < minY) minY = pos.getY();
-            if (pos.getY() > maxY) maxY = pos.getY();
-            if (pos.getZ() < minZ) minZ = pos.getZ();
-            if (pos.getZ() > maxZ) maxZ = pos.getZ();
-        }
-        var dim = new BlockPos(maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+        var posDelta = previewData.secondPos().subtract(previewData.firstPos());
 
         String dimensions = "(";
-        if (dim.getX() > 1) dimensions += dim.getX() + "x";
-        if (dim.getZ() > 1) dimensions += dim.getZ() + "x";
-        if (dim.getY() > 1) dimensions += dim.getY() + "x";
+        if (posDelta.getX() != 0) dimensions += (Math.abs(posDelta.getX())+1) + "x";
+        if (posDelta.getZ() != 0) dimensions += (Math.abs(posDelta.getZ())+1) + "x";
+        if (posDelta.getY() != 0) dimensions += (Math.abs(posDelta.getY())+1) + "x";
         dimensions = dimensions.substring(0, dimensions.length() - 1);
         if (dimensions.length() > 1) dimensions += ")";
-
 
         var blockCounter = "" + ChatFormatting.WHITE + placeResult.validBlocks() + ChatFormatting.RESET + (placeResult.isFilled() ? " " : " + " + ChatFormatting.RED + placeResult.wantedBlocks() + ChatFormatting.RESET + " ") + (placeResult.totalBlocks() == 1 ? "block" : "blocks");
 

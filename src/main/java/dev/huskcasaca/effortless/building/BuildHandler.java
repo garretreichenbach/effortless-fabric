@@ -24,6 +24,7 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -200,16 +201,15 @@ public class BuildHandler {
         var operation = currentOperation(player);
 
         //get coordinates
-        Map<BlockPos, BlockState> blockStateMap = findBlockStates(player, blockPos, hitVec, hitSide);
+        var findBlockStateResult = findBlockStates(player, blockPos, hitVec, hitSide);
+        Map<BlockPos, BlockState> blockStateMap = findBlockStateResult.blockStates;
         // Don't know where to place anything. Return valid but empty blockset.
         if (blockStateMap.isEmpty()) return new BlockSet(
-                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), BlockPos.ZERO, BlockPos.ZERO
+                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
+                findBlockStateResult.firstPos, findBlockStateResult.secondPos
         );
         var newCoordinates = blockStateMap.keySet().stream().toList();
         int N = newCoordinates.size();
-        //Remember first and last point for the shader
-        var firstPos = newCoordinates.get(0);
-        var secondPos = newCoordinates.get(N-1);
 
         //Get blockstates (old and new)
         List<BlockState> previousBlockStates = newCoordinates.stream().map(pos -> player.level().getBlockState(pos)).toList();
@@ -251,8 +251,17 @@ public class BuildHandler {
             }
             if (--limit <= 0) break;
         }
-        return new BlockSet(filtCoordinates, filtPreviousBlockStates, filtBlockStates, firstPos, secondPos);
+        return new BlockSet(
+                filtCoordinates, filtPreviousBlockStates, filtBlockStates,
+                findBlockStateResult.firstPos, findBlockStateResult.secondPos
+        );
     }
+
+    private record FindBlockStateResult (
+        Map<BlockPos, BlockState> blockStates,
+        BlockPos firstPos,
+        BlockPos secondPos
+    ) {}
 
     /**
      * Find the coordinates and associated blockstates that the Buildable would like
@@ -263,7 +272,7 @@ public class BuildHandler {
      * @param facing which face of block was hit
      * @return (Ordered) map of blockpos to new state
      */
-    public static Map<BlockPos, BlockState> findBlockStates(Player player, BlockPos blockPos, Vec3 hitVec, Direction facing) {
+    private static FindBlockStateResult findBlockStates(Player player, BlockPos blockPos, Vec3 hitVec, Direction facing) {
         var currentState = player.level().isClientSide ? currentStateClient : currentStateServer;
         var operation = currentOperation(player);
 
@@ -281,10 +290,16 @@ public class BuildHandler {
         var blockStates = BuildModeHandler.findBlockStates(
                 player, blockPos, hitVec, facing, playersBlockState, operation
         );
-        if (blockStates.isEmpty()) return blockStates;
+        if (blockStates.isEmpty()) return new FindBlockStateResult(blockStates, blockPos, blockPos);
+        var box = BoundingBox.encapsulatingPositions(blockStates.keySet()).orElseThrow();
+
         var modBlockStates = BuildModifierHandler.findBlockStates(player, blockStates);
         // TODO Adjust blockstates for torches and ladders etc to place on a valid side
-        return modBlockStates;
+        return new FindBlockStateResult(
+                modBlockStates,
+                new BlockPos(box.minX(), box.minY(), box.minZ()),
+                new BlockPos(box.maxX(), box.maxY(), box.maxZ())
+        );
     }
 
     public static Block getPlayersBlock(Player player) {

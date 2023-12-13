@@ -135,7 +135,6 @@ public abstract class PlayerActionMixin {
             // make a copy, since the item may be gone when we are done with placing (Survival, used up)
             var itemStack = player.getItemInHand(interactionHand).copy();
             HitResult lookingAt = getLookingAt(player);
-            if (!(itemStack.getItem() instanceof BlockItem)) return;
             if (lookingAt.getType() == HitResult.Type.BLOCK) {
                 //find position in distance
                 BlockHitResult blockLookingAt = (BlockHitResult) lookingAt;
@@ -143,10 +142,12 @@ public abstract class PlayerActionMixin {
                 Packets.sendToServer(new ServerboundPlayerPlaceBlockPacket(blockLookingAt));
                 //play sound if further than normal
                 if ((blockLookingAt.getLocation().subtract(player.getEyePosition(1f))).lengthSqr() > 25f) {
-                    var state = ((BlockItem) itemStack.getItem()).getBlock().defaultBlockState();
-                    var soundType = state.getBlock().getSoundType(state);
-                    player.level().playSound(player, player.blockPosition(), soundType.getPlaceSound(), SoundSource.BLOCKS,
-                            0.4f, soundType.getPitch());
+                    if (itemStack.getItem() instanceof BlockItem item) {
+                        var state = item.getBlock().defaultBlockState();
+                        var soundType = state.getBlock().getSoundType(state);
+                        player.level().playSound(player, player.blockPosition(), soundType.getPlaceSound(), SoundSource.BLOCKS,
+                                0.4f, soundType.getPitch());
+                    }
                     player.swing(interactionHand);
                 }
             } else {

@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static dev.huskcasaca.effortless.building.BuildOp.BREAK;
+
 public class BuildModeHandler {
 
     /**
@@ -35,33 +37,35 @@ public class BuildModeHandler {
         return buildable(player).onUse(player, blockPos, skipRaytrace, operation);
     }
 
-    // get current BlockPos set in intermediate state (tracking mouse)
-    public static List<BlockPos> findCoordinates(Player player, BlockPos startPos, boolean skipRaytrace) {
-        return new ArrayList<>(buildable(player).findCoordinates(player, startPos, skipRaytrace));
-    }
-
     /**
-     * Given the coordinates previously returned by findCoordinates, tell us what block
-     * to place there. Modes are free to leave out some positions.
-     * By default, playersBlockState is placed everywhere.
-     * Modes can decide to place something different, e.g. (TODO) place a saved structure,
-     * or (TODO) adjust top/bottom placing of slabs to form a nice stair.
-     * @param posList Positions where to place
+     * Given the last hit result (blockPos, hitVec, facing), tell us what blocks
+     * to place and where.
+     * Most modes will just place playersBlockState everywhere.
+     * However, some modes can decide to place something different, e.g.
+     * - (TODO) place a saved structure, or
+     * - (TODO) adjust top/bottom placing of slabs to form a nice stair.
+     * @param blockPos Block that is targeted by the player
+     * @param hitVec Exact clipping location
+     * @param facing Which face of block was clicked
      * @param playersBlockState associated blockstate of players held item, placed at initial conditions.
+     * @param operation What the player is currently doing
      * @return map of position to block state.
      */
     public static LinkedHashMap<BlockPos, BlockState> findBlockStates(
-            Player player, List<BlockPos> posList, BlockState playersBlockState, BuildOp operation
+            Player player, BlockPos blockPos, Vec3 hitVec, Direction facing, BlockState playersBlockState, BuildOp operation
     ) {
+        var skipRaytrace = (operation == BREAK) || BuildModifierHelper.isQuickReplace(player);
         if (buildable(player) instanceof StructureBuildable structureBuildable) {
-            return structureBuildable.findBlockStates(player, posList, playersBlockState, operation);
+            return structureBuildable.findBlockStates(player, blockPos, hitVec, facing, operation);
         }
         else {
+            var posList = buildable(player).findCoordinates(player, blockPos, skipRaytrace);
+            if (posList.isEmpty()) return new LinkedHashMap<>();
             var result = new LinkedHashMap<BlockPos, BlockState>(posList.size());
             var blockState = operation == BuildOp.PLACE ? playersBlockState : Blocks.AIR.defaultBlockState();
             if (blockState == null) return result;
-            for (var blockPos : posList) {
-                result.put(blockPos, blockState);
+            for (var pos : posList) {
+                result.put(pos, blockState);
             }
             return result;
         }

@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.Tesselator;
 import dev.huskcasaca.effortless.building.BuildAction;
 import dev.huskcasaca.effortless.building.BuildActionHandler;
 import dev.huskcasaca.effortless.building.BuildHandler;
-import dev.huskcasaca.effortless.buildmode.BuildModeHandler;
 import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
 import dev.huskcasaca.effortless.buildmodifier.BuildModifierHelper;
 import dev.huskcasaca.effortless.control.Keys;
@@ -19,6 +18,7 @@ import dev.huskcasaca.effortless.network.protocol.player.*;
 import dev.huskcasaca.effortless.render.BlockPreviewRenderer;
 import dev.huskcasaca.effortless.render.BuildRenderType;
 import dev.huskcasaca.effortless.render.ModifierRenderer;
+import dev.huskcasaca.effortless.render.StructureHudRenderer;
 import dev.huskcasaca.effortless.screen.buildmode.RadialMenuScreen;
 import dev.huskcasaca.effortless.screen.buildmodifier.ModifierSettingsScreen;
 import dev.huskcasaca.effortless.screen.config.EffortlessConfigScreen;
@@ -27,12 +27,14 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -256,6 +258,7 @@ public class EffortlessClient implements ClientModInitializer {
 
         WorldRenderEvents.AFTER_ENTITIES.register((context) -> renderBlockPreview(context.matrixStack(), context.camera()));
         WorldRenderEvents.LAST.register((context) -> renderModifierSettings(context.matrixStack(), context.camera()));
+        HudRenderCallback.EVENT.register((context, tickDelta) -> renderStructuresHud(context));
 
     }
 
@@ -273,6 +276,10 @@ public class EffortlessClient implements ClientModInitializer {
         var player = Minecraft.getInstance().player;
 
         ModifierRenderer.getInstance().render(player, poseStack, bufferSource, camera);
+    }
+    public static void renderStructuresHud(GuiGraphics guiGraphics) {
+        var player = Minecraft.getInstance().player;
+        StructureHudRenderer.render(player, guiGraphics);
     }
     public static void handlePacket(
             ClientboundPlayerBuildModePacket packet, LocalPlayer player, PacketSender sender

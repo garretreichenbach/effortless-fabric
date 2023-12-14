@@ -3,9 +3,9 @@
 [versions]
 
 # Minecraft / Loaders
-minecraft = "1.20.3"
+minecraft = "1.20.4"
 fabric-loader = "0.15.0"
-fabric-api = "0.91.1+1.20.3"
+fabric-api = "0.91.2+1.20.4"
 fabric-loom = "1.4-SNAPSHOT"
 
 # Dependencies

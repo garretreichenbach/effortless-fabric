@@ -6,12 +6,13 @@
   "description": "It just saves your time.",
   "authors": [
     "Requios",
-    "Huskcasaca"
+    "Huskcasaca",
+    "loehnertj"
   ],
   "contact": {
-    "homepage": "https://minecraft.curseforge.com/projects/effortless-fabric",
-    "issues": "https://github.com/huskcasaca/effortless-fabric/issues",
-    "sources": "https://github.com/huskcasaca/effortless-fabric"
+    "homepage": "https://github.com/loehnertj/effortless-fabric",
+    "issues": "https://github.com/loehnertj/effortless-fabric/issues",
+    "sources": "https://github.com/loehnertj/effortless-fabric"
   },
   "license": "LGPLv3",
   "icon": "assets/effortless/icon.png",
@@ -32,7 +33,7 @@
   ],
   "accessWidener": "effortless.accesswidener",
   "depends": {
-    "fabricloader": "0.14.x",
+    "fabricloader": ">=0.14.0",
     "fabric": "*",
     "minecraft": "1.20.2"
   },

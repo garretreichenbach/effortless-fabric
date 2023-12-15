@@ -33,7 +33,7 @@
   ],
   "accessWidener": "effortless.accesswidener",
   "depends": {
-    "fabricloader": "0.15.x",
+    "fabricloader": ">=0.14.0",
     "fabric": "*",
     "minecraft": "1.20.4"
   },

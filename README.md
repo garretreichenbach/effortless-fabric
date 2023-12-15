@@ -107,6 +107,10 @@ If any of these bothers you particularly, please open a github issue (or Pull re
   knowhow.
 
 ## Changelog
+### 1.7.3 (Fork only)
+
+* loosen version requirement for Fabric loader: allow all versions >=0.14.x
+
 ### 1.7.2 (Fork only)
 
 * **Add structure-copy mode.** Please consider it "beta" for now. I'm still test-driving it

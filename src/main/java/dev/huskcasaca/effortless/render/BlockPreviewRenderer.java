@@ -30,6 +30,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -115,18 +116,18 @@ public class BlockPreviewRenderer {
         var player = minecraft.player;
         var dispatcher = minecraft.getBlockRenderer();
 
-        if (placeData.isEmpty()) return;
-
         var blockLeft = new HashMap<>(blocksLeft);
-        boolean allAir = placeData.stream().allMatch(blockData -> blockData.blockState.isAir());
+        boolean emptyScan = operation == BuildOp.SCAN && placeData.stream().allMatch(blockData -> blockData.blockState.isAir());
+        if (emptyScan || placeData.isEmpty()) {
+            RenderUtils.renderEmptyBBox(poseStack, multiBufferSource, firstPos, secondPos, EMPTY_BOX_COLOR);
+            return;
+        }
 
         for (BlockPosState blockPosState : placeData) {
             var blockPos = blockPosState.coordinate;
             var blockState = blockPosState.blockState;
             var canBreak = blockPosState.canBreak;
             var canPlace = blockPosState.canPlace;
-            // Only "render" air blocks if there is nothing else to see.
-            if (blockState.isAir() && !allAir) continue;
 
             switch (operation) {
                 case BREAK -> {
@@ -136,7 +137,9 @@ public class BlockPreviewRenderer {
                 }
                 case SCAN -> {
                     // Render scanning with the outline shader, to indicate we won't actually harm the blocks.
-                    RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, blockPos, blockState, SCAN_OUTLINE_COLOR);
+                    // Do not render air.
+                    if (!blockState.isAir())
+                        RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, blockPos, blockState, SCAN_OUTLINE_COLOR);
                 }
                 default -> {
                     if (canPlace != null && canPlace || SurvivalHelper.canPlace(player, blockPosState.coordinate)) {
@@ -350,10 +353,6 @@ public class BlockPreviewRenderer {
         }
 
         //Render block previews
-        if (blockStates.isEmpty() || newCoordinates.size() != blockStates.size()) {
-            clearActionBarMessage(player);
-            return;
-        }
 
         //Use fancy shader if config allows, otherwise outlines
         switch (ConfigManager.getGlobalPreviewConfig().getBlockPreviewMode()) {

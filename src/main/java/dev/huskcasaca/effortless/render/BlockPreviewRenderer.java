@@ -25,7 +25,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
@@ -141,6 +143,10 @@ public class BlockPreviewRenderer {
                     if (!blockState.isAir())
                         RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, blockPos, blockState, SCAN_OUTLINE_COLOR);
                 }
+                case DRENCH -> {
+                    // Render with the outline shader, since blocks are hard to see otherwise.
+                    RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, blockPos, blockState, DRENCH_OUTLINE_COLOR);
+                }
                 default -> {
                     if (canPlace != null && canPlace || SurvivalHelper.canPlace(player, blockPosState.coordinate)) {
                         if (player.isCreative()) {
@@ -182,6 +188,9 @@ public class BlockPreviewRenderer {
                 }
                 case SCAN -> {
                     RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, blockPos, blockState, SCAN_OUTLINE_COLOR);
+                }
+                case DRENCH -> {
+                    RenderUtils.renderBlockOutlines(poseStack, multiBufferSource, blockPos, blockState, DRENCH_OUTLINE_COLOR);
                 }
                 default -> {
                     if (canPlace != null && canPlace || SurvivalHelper.canPlace(player, blockPosState.coordinate)) {
@@ -228,6 +237,24 @@ public class BlockPreviewRenderer {
                 case SCAN -> {
                     valid.put(blockState.getBlock(), valid.getOrDefault(blockState.getBlock(), 0) + 1);
                     total.put(blockState.getBlock(), total.getOrDefault(blockState.getBlock(), 0) + 1);
+                }
+                case DRENCH -> {
+                    var playersBlock = BuildHandler.getPlayersBlock(player);
+                    if (playersBlock==null) playersBlock = Blocks.AIR;
+                    if (player.isCreative()
+                            || playersBlock.equals(Blocks.AIR)
+                            || playersBlock.equals(Blocks.WATER
+                    )) {
+                        valid.put(playersBlock, valid.getOrDefault(playersBlock, 0) + 1);
+                    }
+                    else {
+                        var count = left.getOrDefault(playersBlock, 0);
+                        if (count > 0) {
+                            left.put(playersBlock, count - 1);
+                            valid.put(playersBlock, valid.getOrDefault(playersBlock, 0) + 1);
+                        }
+                    }
+                    total.put(playersBlock, total.getOrDefault(playersBlock, 0) + 1);
                 }
                 default -> {
                     var canPlace = SurvivalHelper.canPlace(player, placeDatum.coordinate);
@@ -400,6 +427,11 @@ public class BlockPreviewRenderer {
         onBlocksPlaced(previousCoordinates, previousBlockStates, previousFirstPos, previousSecondPos);
     }
 
+    public void onDrenched() {
+        // TODO: other animation for this?
+        onBlocksPlaced(previousCoordinates, previousBlockStates, previousFirstPos, previousSecondPos);
+    }
+
     public void onBlocksPlaced(List<BlockPos> coordinates, List<BlockState> blockStates, BlockPos firstPos, BlockPos secondPos) {
         var player = minecraft.player;
 
@@ -483,9 +515,13 @@ public class BlockPreviewRenderer {
             var result = new ArrayList<ItemStack>();
             useResult.valid.forEach((block, count) -> {
                 // FIXME: 31/12/22
-                if (block.equals(Blocks.AIR)) return;
+                if (block.equals(Blocks.AIR) || block.equals(Blocks.WATER)) return;
                 while (count > 0) {
-                    var itemStack = new ItemStack(block.asItem());
+                    Item item;
+                    if (block.equals(Blocks.LAVA)) item = Items.LAVA_BUCKET;
+                    else if (block.equals(Blocks.POWDER_SNOW)) item = Items.POWDER_SNOW_BUCKET;
+                    else item = block.asItem();
+                    var itemStack = new ItemStack(item);
                     if (itemStack.getMaxStackSize() <= 0) continue;
                     var used = count > BlockItem.MAX_STACK_SIZE ? BlockItem.MAX_STACK_SIZE : count;
                     itemStack.setCount(used);
@@ -499,10 +535,14 @@ public class BlockPreviewRenderer {
         public List<ItemStack> getInvalidItemStacks() {
             var result = new ArrayList<ItemStack>();
             useResult.total.forEach((block, count) -> {
-                if (block.equals(Blocks.AIR)) return;
+                if (block.equals(Blocks.AIR) || block.equals(Blocks.WATER)) return;
                 count = count - useResult.valid.getOrDefault(block, 0);
                 while (count > 0) {
-                    var itemStack = new ItemStack(block.asItem());
+                    Item item;
+                    if (block.equals(Blocks.LAVA)) item = Items.LAVA_BUCKET;
+                    else if (block.equals(Blocks.POWDER_SNOW)) item = Items.POWDER_SNOW_BUCKET;
+                    else item = block.asItem();
+                    var itemStack = new ItemStack(item);
                     if (itemStack.getMaxStackSize() <= 0) continue;
                     var used = count > BlockItem.MAX_STACK_SIZE ? BlockItem.MAX_STACK_SIZE : count;
                     itemStack.setCount(used);

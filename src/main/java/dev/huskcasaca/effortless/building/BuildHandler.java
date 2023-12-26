@@ -16,13 +16,12 @@ import dev.huskcasaca.effortless.utils.InventoryHelper;
 import dev.huskcasaca.effortless.utils.SurvivalHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.*;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
@@ -31,6 +30,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
 import static dev.huskcasaca.effortless.building.BuildOp.*;
+import static net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED;
 
 public class BuildHandler {
     private record BuildState(BuildOp operation, Direction hitSide, Vec3 hitVec, BlockState blockState) {
@@ -113,6 +113,7 @@ public class BuildHandler {
             switch(operation) {
                 case BREAK -> BlockPreviewRenderer.getInstance().onBlocksBroken();
                 case PLACE -> BlockPreviewRenderer.getInstance().onBlocksPlaced();
+                case DRENCH -> BlockPreviewRenderer.getInstance().onDrenched();
                 case SCAN -> BlockPreviewRenderer.getInstance().onBlocksScanned();
             }
         }
@@ -124,24 +125,36 @@ public class BuildHandler {
             for (int i = 0; i < blockSet.size(); i++) {
                 var blockPos = blockSet.coordinates().get(i);
                 if (!level.isLoaded(blockPos)) continue;
+                var oldBlockState = blockSet.previousBlockStates().get(i);
                 var blockState = blockSet.newBlockStates().get(i);
-                if (blockState.isAir()) {
+                if (blockState==null) continue;
+                if (operation == BREAK) {
                     SurvivalHelper.breakBlock(level, player, blockPos, false);
                 } else {
                     // Make sure that the player has matching item for target block
-                    if (!player.isCreative()) {
-                        if (
-                                itemStack.isEmpty()
-                                        || !(itemStack.getItem() instanceof BlockItem)
-                                        || ((BlockItem) itemStack.getItem()).getBlock().equals(blockState.getBlock())
-                        ) {
-                            // TODO: prefer main hand / off hand slots
-                            itemStack = InventoryHelper.findItemStackInInventory(player, blockState.getBlock());
-                            // not found, do NOT place the block.
-                            if (itemStack.isEmpty()) continue;
-                        }
+                    // Do not touch inventory if same block with different blockstate.
+                    // This means that check will be skipped if waterlogging/
+                    // unwaterlogging blocks; however we treat this as free action
+                    // anyway, so this doesn't matter.
+                    var fluidState = oldBlockState.getFluidState();
+                    boolean isFlowingFluid = (!fluidState.isEmpty() && !fluidState.isSource());
+                    boolean sameBlock = (oldBlockState.getBlock().equals(blockState.getBlock()) && !isFlowingFluid);
+                    if (!sameBlock && !player.isCreative()) {
+                        Block block = null;
+                        if (operation == DRENCH)
+                            block = currentState.get(player).blockState.getBlock();
+                        else if (operation==PLACE)
+                            block = blockState.getBlock();
+                        itemStack = InventoryHelper.findItemStackInInventory(player, itemStack, block);
+                        // not found, do NOT place the block.
+                        if (itemStack.isEmpty()) continue;
                     }
-                    SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack);
+                    else
+                        itemStack = ItemStack.EMPTY;
+                    if (operation == PLACE)
+                        SurvivalHelper.placeBlock(level, player, blockPos, blockState, itemStack);
+                    else if (operation == DRENCH)
+                        SurvivalHelper.drenchBlock(level, player, blockPos, currentState.get(player).blockState, itemStack);
                 }
             }
             //find actual new blockstates for undo
@@ -217,12 +230,11 @@ public class BuildHandler {
         var isReplace = (operation != PLACE || BuildModifierHelper.isReplace(player));
         var filter = new ArrayList<>(newCoordinates.stream().map(pos -> SurvivalHelper.canSetBlock(player, pos, isReplace)).toList());
 
-        // do not place at position i if not in blockStateMap or if already the same block.
-        // FIXME: does not consider actual state, e.g. orientation of stairs.
+        // do not place at position i if not in blockStateMap or if already the same blockstate.
         if (operation != SCAN) {
             for (int i = 0; i < N; i++) {
                 var blockState = blockStateMap.get(newCoordinates.get(i));
-                if (blockState == null || previousBlockStates.get(i).getBlock() == blockState.getBlock())
+                if (blockState == null || previousBlockStates.get(i).equals(blockState))
                     filter.set(i, false);
             }
         }
@@ -295,6 +307,51 @@ public class BuildHandler {
 
         var modBlockStates = BuildModifierHandler.findBlockStates(player, blockStates);
         // TODO Adjust blockstates for torches and ladders etc to place on a valid side
+
+        // If drenching, Filter out all blocks where the chosen liquid cannot be placed;
+        // also, special treatment for waterloggable blocks.
+        if (operation==DRENCH) {
+            var level = player.level();
+            var playersBlock = playersBlockState.getBlock();
+            // make copy
+            var coordinates = modBlockStates.keySet().stream().toList();
+            for (var pos:  coordinates) {
+                var oldState = level.getBlockState(pos);
+                boolean keep = false;
+                if (playersBlockState.isAir()) {
+                    // remove liquid: just target everything that can be picked up by bucket
+                    if (oldState.getBlock() instanceof BucketPickup) keep = true;
+                    // non-pickable liquid block: Kelp or seagrass
+                    if (oldState.getBlock() instanceof  LiquidBlockContainer) keep = true;
+                }
+                else {
+                    // Set liquid: target all replaceable blocks
+                    if (oldState.canBeReplaced()) keep = true;
+                }
+                if (oldState.hasProperty(WATERLOGGED)) {
+                    if (playersBlock.equals(Blocks.WATER)) {
+                        // Replace "pure" fluid block by waterlogged existing block,
+                        // since we want to have it correct for preview.
+                        // Actual placement will use placeLiquid() to catch side effects (e.g. extinguish campfire)
+                        if (!(Boolean)oldState.getValue(WATERLOGGED)) {
+                            keep = true;
+                            modBlockStates.put(pos, oldState.setValue(WATERLOGGED, true));
+                        }
+                    }
+                    else if (playersBlockState.isAir()) {
+                        // Replace "pure" air block by unwaterlogged existing block.
+                        // Actual placement will use PickupBlock
+                        if (oldState.getValue(WATERLOGGED)) {
+                            keep = true;
+                            modBlockStates.put(pos, oldState.setValue(WATERLOGGED, false));
+                        }
+                    }
+                    // Lava, Powder snow: don't touch either way (keep = false)
+                }
+                if (!keep) modBlockStates.remove(pos);
+            }
+        }
+
         return new FindBlockStateResult(
                 modBlockStates,
                 new BlockPos(box.minX(), box.minY(), box.minZ()),
@@ -302,6 +359,16 @@ public class BuildHandler {
         );
     }
 
+    /**
+     * Get the block that player is currently holding in main or off hand.
+     * Returns null if player does not hold a block-equivalent item.
+     * <p>
+     * If the player holds a BUCKET, return a "proxy" block, which is one of
+     * AIR, WATER, LAVA or POWDER_SNOW depending on bucket's content.
+     *
+     * @param player the player
+     * @return Block held, null if not usable.
+     */
     public static Block getPlayersBlock(Player player) {
         //Get itemstack - either a BlockItem or a proxy (container) that provides Items (e.g. RandomizerBag)
         ItemStack itemStack = player.getItemInHand(InteractionHand.MAIN_HAND);
@@ -311,9 +378,16 @@ public class BuildHandler {
         if (itemStack.isEmpty() || !CompatHelper.isItemBlockProxy(itemStack)) {
             return null;
         }
+        var item = itemStack.getItem();
+        if (item.equals(Items.POWDER_SNOW_BUCKET)) return Blocks.POWDER_SNOW;
+        if (item.equals(Items.WATER_BUCKET)) return Blocks.WATER;
+        if (item.equals(Items.LAVA_BUCKET)) return Blocks.LAVA;
+        if (item.equals(Items.BUCKET)) return Blocks.AIR;
+        if (item.equals(Items.MILK_BUCKET)) return Blocks.WATER;
+        // Other kind of bucket - probably has water in it
+        if (item instanceof BucketItem) return Blocks.WATER;
         // TODO: Randomizer support: detect whether item is a shulker chest.
-        // We would need to return a list of blocks with count, so that prob's can be set.
-        var block = Block.byItem(itemStack.getItem());
+        var block = Block.byItem(item);
         return block == Blocks.AIR ? null : block;
     }
 
@@ -322,6 +396,7 @@ public class BuildHandler {
         var hand = InteractionHand.MAIN_HAND;
         // If aiming nowhere in particular, return default state.
         if (facing == null || hitVec == null || blockPos == null) return block.defaultBlockState();
+        if (block.equals(Blocks.WATER)) return block.defaultBlockState();
         var blockHitResult = new BlockHitResult(hitVec, facing, blockPos, false);
         var itemStack = new ItemStack(block.asItem());
         var context = new BlockPlaceContext(player.level(), player, hand, itemStack, blockHitResult);

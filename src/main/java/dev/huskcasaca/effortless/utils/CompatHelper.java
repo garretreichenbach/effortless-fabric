@@ -1,8 +1,6 @@
 package dev.huskcasaca.effortless.utils;
 
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.*;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class CompatHelper {
@@ -11,8 +9,12 @@ public class CompatHelper {
     // /dank/null, or plain old blocks.
     public static boolean isItemBlockProxy(ItemStack stack) {
         Item item = stack.getItem();
-        return item instanceof BlockItem;
+        if (item instanceof BlockItem) return true;
+        if (item instanceof BucketItem) return true;
+        if (item instanceof SolidBucketItem) return true;
+        if (item instanceof MilkBucketItem) return true;
 //		return item instanceof AbstractRandomizerBagItem;
+        return false;
     }
 
     public static ItemStack getItemBlockByState(ItemStack stack, BlockState state) {

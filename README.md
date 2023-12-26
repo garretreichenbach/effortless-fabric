@@ -62,7 +62,21 @@ Use R key to toggle replace mode.
 
 Use M key to quickly cycle between X/Z Mirror modes (centered on player's position).
 
-### Remarks about Structure mode
+### Liquids
+
+To place water, lava or powder snow, hold a filled bucket of the right type.
+
+This will only affect air and waterloggable blocks in the marked region. Solid blocks
+stay as they are.
+
+To pick up all water, lava and powder snow in the marked region, use an empty bucket.
+
+In survival mode, you can place / remove as much water as you like. You will keep the
+original bucket. For lava and powder snow though, you need the have the required amount
+of buckets in inventory.
+
+
+### Structure mode (Copy / Paste)
 
 Structure mode (top-left in the menu) is used to copy and paste blocks.
 
@@ -106,11 +120,13 @@ position and view direction.
 - **Quick**: Placing blocks replaces the existing blocks including the first one
 
 ## Roadmap
-### Future plans as of 1.7.0
+### Future plans as of 1.8.0
 
-- Place / "break" water blocks by holding water bucket
-- Stair mode: Place with 45° bevel e.g. for roof corners
+- add an Item selection tool to quickly get variants of current item (e.g.
+  matching slab/stair/solid block, or dye variants)
 - Improve slab handling, particularly allow building of slab stairs
+- Stair mode: Place with 45° bevel e.g. for roof corners
+
 
 ### Known issues
 
@@ -120,13 +136,20 @@ If any of these bothers you particularly, please open a github issue (or Pull re
 * Placing torches or other attachable items is not well-tested and most probably buggy.
 * Cannot place double-slabs, and making a stair of slabs doesn't work as one would
   probably expect.
-* When replacing blocks, will not replace a block of same type but with different
-  Blockstate. E.g. when placing stairs, will not "rotate" an existing stair block.
 * No "randomizer bag". Might support Shulker chests as stand-in somewhen.
 * No support for Forge, Bukkit, etc and won't add this either due to total lack of
   knowhow.
 
 ## Changelog
+### 1.8.0
+
+- Place / pickup water, lava + powder snow blocks by holding water bucket. (This was way
+  more complicated than I imagined :-/)
+- Fix: Replacing a block of same type with different state now works. E.g. rotating a
+  stair block. Does not require matching item in survival mode.
+- Improve visualization of "empty" operation (no blocks placed) - now shows a grey
+  bounding box of the build region.
+
 ### 1.7.3 (Fork only)
 
 * loosen version requirement for Fabric loader: allow all versions >=0.14.x

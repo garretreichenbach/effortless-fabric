@@ -7,14 +7,18 @@ import dev.huskcasaca.effortless.buildmode.BuildModeHelper;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerBreakBlockPacket;
 import dev.huskcasaca.effortless.network.protocol.player.ServerboundPlayerPlaceBlockPacket;
 import dev.huskcasaca.effortless.network.Packets;
+import dev.huskcasaca.effortless.utils.InventoryHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.Nullable;
@@ -147,6 +151,24 @@ public abstract class PlayerActionMixin {
                         var soundType = state.getBlock().getSoundType(state);
                         player.level().playSound(player, player.blockPosition(), soundType.getPlaceSound(), SoundSource.BLOCKS,
                                 0.4f, soundType.getPitch());
+                    }
+                    else if (InventoryHelper.holdingBucket(player, true)) {
+                        var item = itemStack.getItem();
+                        SoundEvent sound;
+                        if (item == Items.BUCKET)
+                            // Player might have picked up water, lava or snow, we don't know.
+                            // Just use the water sound.
+                            sound = SoundEvents.BUCKET_FILL;
+                        else if (item == Items.LAVA_BUCKET)
+                            sound = SoundEvents.BUCKET_EMPTY_LAVA;
+                        else if (item == Items.POWDER_SNOW_BUCKET)
+                            sound = SoundEvents.BUCKET_EMPTY_POWDER_SNOW;
+                        else if (item == Items.MILK_BUCKET)
+                            sound = SoundEvents.COW_AMBIENT;
+                        else
+                            // Probably has something watery in it
+                            sound = SoundEvents.BUCKET_EMPTY;
+                        player.playSound(sound, 1.0F, 1.0F);
                     }
                     player.swing(interactionHand);
                 }

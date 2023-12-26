@@ -1,10 +1,9 @@
 package dev.huskcasaca.effortless.buildmode;
 
 import dev.huskcasaca.effortless.building.BuildOp;
+import dev.huskcasaca.effortless.utils.InventoryHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
@@ -17,7 +16,9 @@ public abstract class MultipleClickBuildable implements Buildable {
     protected Dictionary<UUID, Integer> rightClickTableServer = new Hashtable<>();
     protected Dictionary<UUID, BlockPos> firstPosTable = new Hashtable<>();
 
-    public BuildOp operationOnUse(Player player) {return BuildOp.PLACE; }
+    public BuildOp operationOnUse(Player player) {
+        return InventoryHelper.holdingBucket(player, true) ? BuildOp.DRENCH : BuildOp.PLACE;
+    }
     public BuildOp operationOnAttack(Player player) {return BuildOp.BREAK; }
 
     @Override

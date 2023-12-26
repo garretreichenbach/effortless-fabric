@@ -13,6 +13,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import static dev.huskcasaca.effortless.building.BuildOp.BREAK;
+import static net.minecraft.world.level.block.state.properties.BlockStateProperties.WATERLOGGED;
 
 public class BuildModeHandler {
 
@@ -42,7 +44,7 @@ public class BuildModeHandler {
      * to place and where.
      * Most modes will just place playersBlockState everywhere.
      * However, some modes can decide to place something different, e.g.
-     * - (TODO) place a saved structure, or
+     * - place a saved structure, or
      * - (TODO) adjust top/bottom placing of slabs to form a nice stair.
      * @param blockPos Block that is targeted by the player
      * @param hitVec Exact clipping location
@@ -62,7 +64,7 @@ public class BuildModeHandler {
             var posList = buildable(player).findCoordinates(player, blockPos, skipRaytrace);
             if (posList.isEmpty()) return new LinkedHashMap<>();
             var result = new LinkedHashMap<BlockPos, BlockState>(posList.size());
-            var blockState = operation == BuildOp.PLACE ? playersBlockState : Blocks.AIR.defaultBlockState();
+            var blockState = operation == BuildOp.BREAK ? Blocks.AIR.defaultBlockState() : playersBlockState;
             if (blockState == null) return result;
             for (var pos : posList) {
                 result.put(pos, blockState);

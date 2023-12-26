@@ -27,6 +27,26 @@ reach upgrade items to make it a pure vanilla compat one.
 <img alt="Scanning structure" src="screenshots/structure_scanning.png" style="width:100%;max-width:400pt;"/>
 <img alt="Placing structure" src="screenshots/structure_placing.png" style="width:100%;max-width:400pt;"/>
 
+## Installation instructions
+
+If you don't have Fabric yet:
+
+1. Go to https://fabricmc.net and download the Installer.
+2. Run it and follow the instructions.
+3. Download [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api) and
+   place it in your Minecraft Profile in the ``mods`` subdirectory.
+
+(... If you already have Fabric):
+
+4. Download this mod (Release ``.jar`` file) and place it in the same ``mods`` directory.
+5. Start Minecraft launcher and select the Fabric Profile. It should be named 
+   ``fabric-loader-<version>``.
+6. Run Minecraft: The mod should now be available.
+7. (Optional): Download the [modmenu](https://modrinth.com/mod/modmenu)
+   and [cloth-config](https://modrinth.com/mod/cloth-config) mods to have access to the
+   configuration options. Optional because Effortless works just fine with default 
+   settings.
+
 ## Building
 
 Hold ALT key to switch build modes in the radial panel. There are buttons for undo/redo,

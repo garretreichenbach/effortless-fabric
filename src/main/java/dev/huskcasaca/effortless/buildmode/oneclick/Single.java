@@ -2,11 +2,9 @@ package dev.huskcasaca.effortless.buildmode.oneclick;
 
 import dev.huskcasaca.effortless.building.BuildOp;
 import dev.huskcasaca.effortless.buildmode.OneClickBuildable;
+import dev.huskcasaca.effortless.utils.InventoryHelper;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,7 +14,9 @@ public class Single extends OneClickBuildable {
     @Override
     public void initialize(Player player) { }
 
-    public BuildOp operationOnUse(Player player) {return BuildOp.PLACE; }
+    public BuildOp operationOnUse(Player player) {
+        return InventoryHelper.holdingBucket(player, true) ? BuildOp.DRENCH : BuildOp.PLACE;
+    }
     public BuildOp operationOnAttack(Player player) {return BuildOp.BREAK; }
 
     @Override

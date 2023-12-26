@@ -9,10 +9,13 @@ import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.ChatType;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -28,7 +31,9 @@ public class RenderUtils {
     public static final Vec3 ERROR_OUTLINE_COLOR = new Vec3(1, 0, 0);
     public static final Vec3 BREAK_OUTLINE_COLOR = new Vec3(1, 0, 0);
     public static final Vec3 SCAN_OUTLINE_COLOR = new Vec3(0.5, 1, 0);
+    public static final Vec3 DRENCH_OUTLINE_COLOR = new Vec3(0, 0.2, 1);
     public static final Vec3 PLACE_OUTLINE_COLOR = new Vec3(1, 1, 1);
+    public static final Vec3 EMPTY_BOX_COLOR = new Vec3(0.3, 0.3, 0.3);
 
     public static VertexConsumer beginLines(MultiBufferSource.BufferSource renderTypeBuffer) {
         return renderTypeBuffer.getBuffer(BuildRenderType.lines());
@@ -80,15 +85,48 @@ public class RenderUtils {
 
         RenderSystem.lineWidth(2f);
 
-        var voxelShape = blockState.isAir()
-                ? Blocks.STONE.defaultBlockState().getShape(level, blockPos)
-                : blockState.getShape(level, blockPos);
+        VoxelShape voxelShape;
+        if (blockState.getBlock() instanceof LiquidBlock)
+            voxelShape = blockState.getFluidState().getShape(level, blockPos);
+        else
+            voxelShape = blockState.isAir()
+                    ? Blocks.STONE.defaultBlockState().getShape(level, blockPos)
+                    : blockState.getShape(level, blockPos);
         var camera = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         renderVoxelShape(poseStack, buffer, voxelShape, blockPos.getX() - camera.x(), blockPos.getY() - camera.y(), blockPos.getZ() - camera.z(), (float) color.x(), (float) color.y(), (float) color.z(), 1f);
 
         renderTypeBuffer.endBatch();
         poseStack.popPose();
     }
+
+    public static void renderEmptyBBox(
+            PoseStack poseStack,
+            MultiBufferSource.BufferSource renderTypeBuffer,
+            BlockPos firstPos,
+            BlockPos secondPos,
+            Vec3 color) {
+        if (firstPos == null) return;
+        if (secondPos == null) secondPos = firstPos;
+        var box = BoundingBox.fromCorners(firstPos, secondPos.offset(1,1,1));
+        var voxelShape = Shapes.box(
+                box.minX(), box.minY(), box.minZ(),
+                box.maxX(), box.maxY(), box.maxZ()
+        );
+        //var voxelShape = Blocks.STONE.defaultBlockState().getShape(Minecraft.getInstance().level, BlockPos.ZERO);
+        poseStack.pushPose();
+        var buffer = renderTypeBuffer.getBuffer(RenderType.lines());
+        RenderSystem.lineWidth(2f);
+        var camera = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+        renderVoxelShape(
+                poseStack, buffer, voxelShape,
+                 -camera.x(), -camera.y(), -camera.z(),
+                (float) color.x(), (float)color.y(), (float)color.z(),
+                1f
+        );
+        renderTypeBuffer.endBatch();
+        poseStack.popPose();
+    }
+
 
     private static void renderVoxelShape(PoseStack poseStack, VertexConsumer vertexConsumer, VoxelShape voxelShape, double d, double e, double f, float g, float h, float i, float j) {
         List<AABB> list = voxelShape.toAabbs();

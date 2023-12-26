@@ -239,7 +239,7 @@ public class UndoRedo {
         //First try previousBlockStates
         //TODO try to find itemstack with right blockstate first
         // then change line 103 back (get state from item)
-        itemStack = InventoryHelper.findItemStackInInventory(player, blockState.getBlock());
+        itemStack = InventoryHelper.findItemStackInInventory(player, null, blockState.getBlock());
 
 
         //then anything it drops
@@ -250,7 +250,7 @@ public class UndoRedo {
                 for (ItemStack itemStackDropped : itemsDropped) {
                     if (itemStackDropped.getItem() instanceof BlockItem) {
                         Block block = ((BlockItem) itemStackDropped.getItem()).getBlock();
-                        itemStack = InventoryHelper.findItemStackInInventory(player, block);
+                        itemStack = InventoryHelper.findItemStackInInventory(player, null, block);
                     }
                 }
             }

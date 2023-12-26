@@ -6,7 +6,8 @@ package dev.huskcasaca.effortless.building;
 public enum BuildOp {
     BREAK("break"),
     PLACE("place"),
-    SCAN("scan");;
+    SCAN("scan"),
+    DRENCH ("drench");
 
     private final String name;
 

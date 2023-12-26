@@ -22,6 +22,7 @@ import dev.huskcasaca.effortless.render.StructureHudRenderer;
 import dev.huskcasaca.effortless.screen.buildmode.RadialMenuScreen;
 import dev.huskcasaca.effortless.screen.buildmodifier.ModifierSettingsScreen;
 import dev.huskcasaca.effortless.screen.config.EffortlessConfigScreen;
+import dev.huskcasaca.effortless.utils.InventoryHelper;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -214,9 +215,18 @@ public class EffortlessClient implements ClientModInitializer {
         var look = player.getLookAngle();
         var start = new Vec3(player.getX(), player.getY() + player.getEyeHeight(), player.getZ());
         var end = new Vec3(player.getX() + look.x * raytraceRange, player.getY() + player.getEyeHeight() + look.y * raytraceRange, player.getZ() + look.z * raytraceRange);
+        var holdingBucket = InventoryHelper.holdingBucket(player, true);
 //        return player.rayTrace(raytraceRange, 1f, RayTraceFluidMode.NEVER);
         //TODO 1.14 check if correct
-        return level.clip(new ClipContext(start, end, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+        return level.clip(
+            new ClipContext(
+                start,
+                end,
+                ClipContext.Block.OUTLINE,
+                holdingBucket ? ClipContext.Fluid.SOURCE_ONLY : ClipContext.Fluid.NONE,
+                player
+            )
+        );
     }
 
     public static void registerShaders(ResourceProvider resourceProvider, ClientReloadShadersEvent.ShaderRegister.ShadersSink sink) throws IOException {

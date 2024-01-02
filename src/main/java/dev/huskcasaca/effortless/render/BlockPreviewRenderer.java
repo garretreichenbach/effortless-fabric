@@ -52,7 +52,6 @@ public class BlockPreviewRenderer {
     private List<BlockState> previousBlockStates;
     private BlockPos previousFirstPos;
     private BlockPos previousSecondPos;
-    private int soundTime = 0;
     private boolean lastMessage = false;
 
     public BlockPreviewRenderer(Minecraft minecraft) {
@@ -358,25 +357,6 @@ public class BlockPreviewRenderer {
             previousBlockStates = previewData.newBlockStates();
             previousFirstPos = previewData.firstPos();
             previousSecondPos = previewData.secondPos();
-
-            //and play sound (max once every tick)
-            if (newCoordinates.size() > 1 && blockStates.size() > 1 && soundTime < EffortlessClient.getTicksInGame()) {
-                soundTime = EffortlessClient.getTicksInGame();
-
-                if (blockStates.get(0) != null) {
-                    SoundType soundType = blockStates.get(0).getBlock().getSoundType(blockStates.get(0));
-                    player.level().playSound(
-                            player,
-                            player.blockPosition(),
-                            (operation==BuildOp.BREAK || operation==BuildOp.SCAN)
-                                    ? soundType.getBreakSound()
-                                    : soundType.getPlaceSound(),
-                            SoundSource.BLOCKS,
-                            0.3f,
-                            0.8f
-                    );
-                }
-            }
         }
 
         //Render block previews

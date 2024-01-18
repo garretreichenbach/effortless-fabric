@@ -350,14 +350,11 @@ public class BlockPreviewRenderer {
         var secondPos = previewData.secondPos();
 
         //Check if they are different from previous
-        //TODO fix triggering when moving player
-        if (!BuildModifierHandler.compareCoordinates(previousCoordinates, newCoordinates)) {
-            previousCoordinates = newCoordinates;
-            //remember the rest for placed blocks
-            previousBlockStates = previewData.newBlockStates();
-            previousFirstPos = previewData.firstPos();
-            previousSecondPos = previewData.secondPos();
-        }
+        previousCoordinates = newCoordinates;
+        //remember the rest for placed blocks
+        previousBlockStates = previewData.newBlockStates();
+        previousFirstPos = previewData.firstPos();
+        previousSecondPos = previewData.secondPos();
 
         //Render block previews
 

@@ -373,7 +373,11 @@ public class BlockPreviewRenderer {
             return;
         }
         //Display block count and dimensions in actionbar
-        var posDelta = previewData.secondPos().subtract(previewData.firstPos());
+        BlockPos posDelta;
+        if (previewData.firstPos()!= null && previewData.secondPos()!= null)
+            posDelta = previewData.secondPos().subtract(previewData.firstPos());
+        else
+            posDelta = BlockPos.ZERO;
 
         String dimensions = "(";
         if (posDelta.getX() != 0) dimensions += (Math.abs(posDelta.getX())+1) + "x";

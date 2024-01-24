@@ -52,7 +52,6 @@ public class BlockPreviewRenderer {
     private List<BlockState> previousBlockStates;
     private BlockPos previousFirstPos;
     private BlockPos previousSecondPos;
-    private int soundTime = 0;
     private boolean lastMessage = false;
 
     public BlockPreviewRenderer(Minecraft minecraft) {
@@ -351,33 +350,11 @@ public class BlockPreviewRenderer {
         var secondPos = previewData.secondPos();
 
         //Check if they are different from previous
-        //TODO fix triggering when moving player
-        if (!BuildModifierHandler.compareCoordinates(previousCoordinates, newCoordinates)) {
-            previousCoordinates = newCoordinates;
-            //remember the rest for placed blocks
-            previousBlockStates = previewData.newBlockStates();
-            previousFirstPos = previewData.firstPos();
-            previousSecondPos = previewData.secondPos();
-
-            //and play sound (max once every tick)
-            if (newCoordinates.size() > 1 && blockStates.size() > 1 && soundTime < EffortlessClient.getTicksInGame()) {
-                soundTime = EffortlessClient.getTicksInGame();
-
-                if (blockStates.get(0) != null) {
-                    SoundType soundType = blockStates.get(0).getBlock().getSoundType(blockStates.get(0));
-                    player.level().playSound(
-                            player,
-                            player.blockPosition(),
-                            (operation==BuildOp.BREAK || operation==BuildOp.SCAN)
-                                    ? soundType.getBreakSound()
-                                    : soundType.getPlaceSound(),
-                            SoundSource.BLOCKS,
-                            0.3f,
-                            0.8f
-                    );
-                }
-            }
-        }
+        previousCoordinates = newCoordinates;
+        //remember the rest for placed blocks
+        previousBlockStates = previewData.newBlockStates();
+        previousFirstPos = previewData.firstPos();
+        previousSecondPos = previewData.secondPos();
 
         //Render block previews
 
@@ -396,7 +373,11 @@ public class BlockPreviewRenderer {
             return;
         }
         //Display block count and dimensions in actionbar
-        var posDelta = previewData.secondPos().subtract(previewData.firstPos());
+        BlockPos posDelta;
+        if (previewData.firstPos()!= null && previewData.secondPos()!= null)
+            posDelta = previewData.secondPos().subtract(previewData.firstPos());
+        else
+            posDelta = BlockPos.ZERO;
 
         String dimensions = "(";
         if (posDelta.getX() != 0) dimensions += (Math.abs(posDelta.getX())+1) + "x";

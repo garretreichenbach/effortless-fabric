@@ -141,7 +141,13 @@ If any of these bothers you particularly, please open a github issue (or Pull re
   knowhow.
 
 ## Changelog
-### 1.8.0
+### 1.8.1 (Fork only)
+
+- Fix sound playing too often while placing structure - preview is now silent (Issue #6)
+- Fix placed blocks rendered in wrong position for a short time
+- Fix crash when looking "into infinity" (Issue #8)
+
+### 1.8.0 (Fork only)
 
 - Place / pickup water, lava + powder snow blocks by holding water bucket. (This was way
   more complicated than I imagined :-/)

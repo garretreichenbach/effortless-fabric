@@ -2,38 +2,33 @@ package dev.huskcasaca.effortless.network.protocol.player;
 
 import dev.huskcasaca.effortless.entity.player.ReachSettings;
 import dev.huskcasaca.effortless.network.Packets;
-import net.fabricmc.fabric.api.networking.v1.FabricPacket;
-import net.fabricmc.fabric.api.networking.v1.PacketType;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record ClientboundPlayerReachPacket(
-        ReachSettings reachSettings
-) implements FabricPacket {
-    public static final PacketType<ClientboundPlayerReachPacket> TYPE = PacketType.create(
-            Packets.S2C_PLAYER_REACH_PACKET, ClientboundPlayerReachPacket::new
-    );
-    @Override
-    public PacketType<?> getType() { return TYPE; }
-    public ClientboundPlayerReachPacket(FriendlyByteBuf friendlyByteBuf) {
-        this(
-                new ReachSettings(
-                        friendlyByteBuf.readInt(),
-                        friendlyByteBuf.readInt(),
-                        friendlyByteBuf.readInt(),
-                        friendlyByteBuf.readBoolean(),
-                        friendlyByteBuf.readBoolean(),
-                        friendlyByteBuf.readInt()
-                )
-        );
-    }
+public record ClientboundPlayerReachPacket(ReachSettings reachSettings) implements CustomPacketPayload {
 
-    @Override
-    public void write(FriendlyByteBuf friendlyByteBuf) {
-        friendlyByteBuf.writeInt(reachSettings.maxReachDistance());
-        friendlyByteBuf.writeInt(reachSettings.maxBlockPlacePerAxis());
-        friendlyByteBuf.writeInt(reachSettings.maxBlockPlaceAtOnce());
-        friendlyByteBuf.writeBoolean(reachSettings.canBreakFar());
-        friendlyByteBuf.writeBoolean(reachSettings.enableUndoRedo());
-        friendlyByteBuf.writeInt(reachSettings.undoStackSize());
-    }
+	public static final CustomPacketPayload.Type<ClientboundPlayerReachPacket> TYPE = new Type<>(Packets.S2C_PLAYER_REACH_PACKET);
+	public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundPlayerReachPacket> CODEC = new StreamCodec<>() {
+
+		@Override
+		public void encode(RegistryFriendlyByteBuf object, ClientboundPlayerReachPacket object2) {
+			object.writeInt(object2.reachSettings().maxReachDistance());
+			object.writeInt(object2.reachSettings().maxBlockPlacePerAxis());
+			object.writeInt(object2.reachSettings().maxBlockPlaceAtOnce());
+			object.writeBoolean(object2.reachSettings().canBreakFar());
+			object.writeBoolean(object2.reachSettings().enableUndoRedo());
+			object.writeInt(object2.reachSettings().undoStackSize());
+		}
+
+		@Override
+		public ClientboundPlayerReachPacket decode(RegistryFriendlyByteBuf object) {
+			return new ClientboundPlayerReachPacket(new ReachSettings(object.readInt(), object.readInt(), object.readInt(), object.readBoolean(), object.readBoolean(), object.readInt()));
+		}
+	};
+
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
+	}
 }

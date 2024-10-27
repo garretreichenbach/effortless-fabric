@@ -2,25 +2,27 @@ package dev.huskcasaca.effortless.network.protocol.player;
 
 import dev.huskcasaca.effortless.building.BuildAction;
 import dev.huskcasaca.effortless.network.Packets;
-import net.fabricmc.fabric.api.networking.v1.FabricPacket;
-import net.fabricmc.fabric.api.networking.v1.PacketType;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record ServerboundPlayerBuildActionPacket(
-        BuildAction action
-) implements FabricPacket {
-    public static final PacketType<ServerboundPlayerBuildActionPacket> TYPE = PacketType.create(
-            Packets.C2S_PLAYER_BUILD_ACTION_PACKET, ServerboundPlayerBuildActionPacket::new
-    );
-    @Override
-    public PacketType<?> getType() { return TYPE; }
+public record ServerboundPlayerBuildActionPacket(BuildAction action) implements CustomPacketPayload {
 
-    public ServerboundPlayerBuildActionPacket(FriendlyByteBuf friendlyByteBuf) {
-        this(BuildAction.values()[friendlyByteBuf.readInt()]);
-    }
+	public static final CustomPacketPayload.Type<ServerboundPlayerBuildActionPacket> TYPE = new Type<>(Packets.C2S_PLAYER_BUILD_ACTION_PACKET);
+	public static final StreamCodec<RegistryFriendlyByteBuf, ServerboundPlayerBuildActionPacket> CODEC = new StreamCodec<>() {
+		@Override
+		public void encode(RegistryFriendlyByteBuf object, ServerboundPlayerBuildActionPacket object2) {
+			object.writeInt(object2.action().ordinal());
+		}
 
-    @Override
-    public void write(FriendlyByteBuf friendlyByteBuf) {
-        friendlyByteBuf.writeInt(action.ordinal());
-    }
+		@Override
+		public ServerboundPlayerBuildActionPacket decode(RegistryFriendlyByteBuf object) {
+			return new ServerboundPlayerBuildActionPacket(BuildAction.values()[object.readInt()]);
+		}
+	};
+	
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
+	}
 }

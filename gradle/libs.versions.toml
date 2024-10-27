@@ -3,17 +3,17 @@
 [versions]
 
 # Minecraft / Loaders
-minecraft = "1.20.4"
-fabric-loader = "0.15.0"
-fabric-api = "0.91.2+1.20.4"
-fabric-loom = "1.4-SNAPSHOT"
+minecraft = "1.20.6"
+fabric-loader = "0.16.7"
+fabric-api = "0.100.8+1.20.6"
+fabric-loom = "1.8-SNAPSHOT"
 
 # Dependencies
 jsr305 = "3.0.2"
 
 # Mod dependencies
-modmenu = "5.0.1"
-cloth-config = "9.0.94"
+modmenu = "10.0.0"
+cloth-config = "14.0.139"
 
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }

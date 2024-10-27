@@ -39,13 +39,13 @@ public abstract class GuiMixin {
 
     @Shadow public abstract Font getFont();
 
-    @Shadow private int screenWidth;
+    private int screenWidth;
 
-    @Shadow private int screenHeight;
+    private int screenHeight;
 
     @Shadow protected abstract Player getCameraPlayer();
 
-    @Shadow @Final private ItemRenderer itemRenderer;
+    @Final private ItemRenderer itemRenderer;
 
     private static final Direction.AxisDirection side = Direction.AxisDirection.POSITIVE;
     private static final int SPACING_X = 18;

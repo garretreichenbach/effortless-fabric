@@ -1,11 +1,11 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
 import dev.huskcasaca.effortless.network.Packets;
-import net.fabricmc.fabric.api.networking.v1.FabricPacket;
-import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -13,41 +13,37 @@ import net.minecraft.world.phys.Vec3;
 /***
  * Sends a message to the server indicating that a player wants to break a block
  */
-public record ServerboundPlayerBreakBlockPacket(
-        boolean blockHit,
-        BlockPos blockPos,
-        Direction hitSide,
-        Vec3 hitVec
-) implements FabricPacket {
-    public static final PacketType<ServerboundPlayerBreakBlockPacket> TYPE = PacketType.create(
-            Packets.C2S_PLAYER_BREAK_BLOCK_PACKET, ServerboundPlayerBreakBlockPacket::new
-    );
-    @Override
-    public PacketType<?> getType() { return TYPE; }
-    public ServerboundPlayerBreakBlockPacket() {
-        // TODO: 17/9/22 use Vec3.ZERO?
-        this(false, BlockPos.ZERO, Direction.UP, new Vec3(0, 0, 0));
-    }
+public record ServerboundPlayerBreakBlockPacket(boolean blockHit, BlockPos blockPos, Direction hitSide, Vec3 hitVec) implements CustomPacketPayload {
 
-    public ServerboundPlayerBreakBlockPacket(BlockHitResult result) {
-        this(result.getType() == HitResult.Type.BLOCK, result.getBlockPos(), result.getDirection(), result.getLocation());
-    }
+	public static final CustomPacketPayload.Type<ServerboundPlayerBreakBlockPacket> TYPE = new Type<>(Packets.C2S_PLAYER_BREAK_BLOCK_PACKET);
+	public static final StreamCodec<RegistryFriendlyByteBuf, ServerboundPlayerBreakBlockPacket> CODEC = new StreamCodec<>() {
 
-    public ServerboundPlayerBreakBlockPacket(FriendlyByteBuf friendlyByteBuf) {
-        this(friendlyByteBuf.readBoolean(),
-                friendlyByteBuf.readBlockPos(),
-                Direction.from3DDataValue(friendlyByteBuf.readByte()),
-                new Vec3(friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble())
-        );
-    }
+		@Override
+		public void encode(RegistryFriendlyByteBuf object, ServerboundPlayerBreakBlockPacket object2) {
+			object.writeBoolean(object2.blockHit());
+			object.writeBlockPos(object2.blockPos());
+			object.writeByte(object2.hitSide().get3DDataValue());
+			object.writeDouble(object2.hitVec().x);
+			object.writeDouble(object2.hitVec().y);
+			object.writeDouble(object2.hitVec().z);
+		}
 
-    @Override
-    public void write(FriendlyByteBuf friendlyByteBuf) {
-        friendlyByteBuf.writeBoolean(blockHit);
-        friendlyByteBuf.writeBlockPos(blockPos);
-        friendlyByteBuf.writeByte(hitSide.get3DDataValue());
-        friendlyByteBuf.writeDouble(hitVec.x);
-        friendlyByteBuf.writeDouble(hitVec.y);
-        friendlyByteBuf.writeDouble(hitVec.z);
-    }
+		@Override
+		public ServerboundPlayerBreakBlockPacket decode(RegistryFriendlyByteBuf object) {
+			return new ServerboundPlayerBreakBlockPacket(object.readBoolean(), object.readBlockPos(), Direction.from3DDataValue(object.readByte()), new Vec3(object.readDouble(), object.readDouble(), object.readDouble()));
+		}
+	};
+
+	public ServerboundPlayerBreakBlockPacket() {
+		this(false, BlockPos.ZERO, Direction.UP, new Vec3(0, 0, 0));
+	}
+
+	public ServerboundPlayerBreakBlockPacket(BlockHitResult result) {
+		this(result.getType() == HitResult.Type.BLOCK, result.getBlockPos(), result.getDirection(), result.getLocation());
+	}
+	
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
+	}
 }

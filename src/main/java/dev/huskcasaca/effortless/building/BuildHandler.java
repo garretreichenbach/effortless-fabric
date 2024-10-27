@@ -16,12 +16,16 @@ import dev.huskcasaca.effortless.utils.InventoryHelper;
 import dev.huskcasaca.effortless.utils.SurvivalHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.tags.FluidTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.*;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BucketPickup;
+import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
@@ -399,7 +403,8 @@ public class BuildHandler {
         if (block.equals(Blocks.WATER)) return block.defaultBlockState();
         var blockHitResult = new BlockHitResult(hitVec, facing, blockPos, false);
         var itemStack = new ItemStack(block.asItem());
-        var context = new BlockPlaceContext(player.level(), player, hand, itemStack, blockHitResult);
+        var context = new BlockPlaceContext(player, hand, itemStack, blockHitResult);
+//        var context = new BlockPlaceContext(player.level(), player, hand, itemStack, blockHitResult);
         return block.getStateForPlacement(context);
     }
 

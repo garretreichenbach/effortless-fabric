@@ -1,11 +1,11 @@
 package dev.huskcasaca.effortless.network.protocol.player;
 
 import dev.huskcasaca.effortless.network.Packets;
-import net.fabricmc.fabric.api.networking.v1.FabricPacket;
-import net.fabricmc.fabric.api.networking.v1.PacketType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -14,20 +14,27 @@ import net.minecraft.world.phys.Vec3;
  * Sends a message to the server indicating that a player wants to place a block.
  * Received clientside: server has placed blocks and its letting the client know.
  */
-public record ServerboundPlayerPlaceBlockPacket(
-        boolean blockHit,
-        BlockPos blockPos,
-        Direction hitSide,
-        Vec3 hitVec,
-        // Unused - left in for compat
-        boolean placeStartPos
-) implements FabricPacket {
-    public static final PacketType<ServerboundPlayerPlaceBlockPacket> TYPE = PacketType.create(
-            Packets.C2S_PLAYER_PLACE_BLOCK_PACKET, ServerboundPlayerPlaceBlockPacket::new
-    );
-    @Override
-    public PacketType<?> getType() { return TYPE; }
+public record ServerboundPlayerPlaceBlockPacket(boolean blockHit, BlockPos blockPos, Direction hitSide, Vec3 hitVec, boolean placeStartPos) implements CustomPacketPayload {
 
+    public static final CustomPacketPayload.Type<ServerboundPlayerPlaceBlockPacket> TYPE = new CustomPacketPayload.Type<>(Packets.C2S_PLAYER_PLACE_BLOCK_PACKET);
+    public static final StreamCodec<RegistryFriendlyByteBuf, ServerboundPlayerPlaceBlockPacket> CODEC = new StreamCodec<>() {
+        @Override
+        public void encode(RegistryFriendlyByteBuf object, ServerboundPlayerPlaceBlockPacket object2) {
+            object.writeBoolean(object2.blockHit());
+            object.writeBlockPos(object2.blockPos());
+            object.writeByte(object2.hitSide().get3DDataValue());
+            object.writeDouble(object2.hitVec().x);
+            object.writeDouble(object2.hitVec().y);
+            object.writeDouble(object2.hitVec().z);
+            object.writeBoolean(object2.placeStartPos());
+        }
+
+        @Override
+        public ServerboundPlayerPlaceBlockPacket decode(RegistryFriendlyByteBuf object) {
+            return new ServerboundPlayerPlaceBlockPacket(object.readBoolean(), object.readBlockPos(), Direction.from3DDataValue(object.readByte()), new Vec3(object.readDouble(), object.readDouble(), object.readDouble()), object.readBoolean());
+        }
+    };
+    
     public ServerboundPlayerPlaceBlockPacket() {
         this(false, BlockPos.ZERO, Direction.UP, new Vec3(0, 0, 0), true);
     }
@@ -36,22 +43,8 @@ public record ServerboundPlayerPlaceBlockPacket(
         this(result.getType() == HitResult.Type.BLOCK, result.getBlockPos(), result.getDirection(), result.getLocation(), true);
     }
 
-    public ServerboundPlayerPlaceBlockPacket(FriendlyByteBuf friendlyByteBuf) {
-        this(friendlyByteBuf.readBoolean(),
-                friendlyByteBuf.readBlockPos(),
-                Direction.from3DDataValue(friendlyByteBuf.readByte()),
-                new Vec3(friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble(), friendlyByteBuf.readDouble()),
-                friendlyByteBuf.readBoolean());
-    }
-
     @Override
-    public void write(FriendlyByteBuf friendlyByteBuf) {
-        friendlyByteBuf.writeBoolean(blockHit);
-        friendlyByteBuf.writeBlockPos(blockPos);
-        friendlyByteBuf.writeByte(hitSide.get3DDataValue());
-        friendlyByteBuf.writeDouble(hitVec.x);
-        friendlyByteBuf.writeDouble(hitVec.y);
-        friendlyByteBuf.writeDouble(hitVec.z);
-        friendlyByteBuf.writeBoolean(placeStartPos);
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }
